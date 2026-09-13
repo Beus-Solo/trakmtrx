@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, PointerEvent as ReactPointerEvent } from 'react';
-import { Trash2, Plus, Check, Repeat, ChevronLeft, ChevronRight, X, Wallet2, ListChecks, Download } from 'lucide-react';
+import { Trash2, Plus, Check, Repeat, ChevronLeft, ChevronRight, X, Wallet2, ListChecks, Download, Calendar, Delete } from 'lucide-react';
 import { Transaction } from '../types';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { useVisualViewport } from '../hooks/useVisualViewportHeight';
@@ -121,6 +121,34 @@ const shortDate = (dateStr: string) => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
+const OPERATORS = '+−×÷';
+const KEYPAD_KEYS = ['1', '2', '3', '÷', '4', '5', '6', '×', '7', '8', '9', '−', '.', '0', 'back', '+'];
+
+// The amount field doubles as a small calculator, so "12+3.50" has to resolve to a number.
+// Multiplication and division bind tighter than addition and subtraction, as on any keypad.
+const evaluateAmount = (expr: string): number => {
+  const tokens = expr.match(/\d+\.?\d*|[+−×÷]/g);
+  if (!tokens) return 0;
+  if (OPERATORS.includes(tokens[tokens.length - 1])) tokens.pop();
+  if (!tokens.length) return 0;
+
+  const terms: (number | string)[] = [Number(tokens[0]) || 0];
+  for (let i = 1; i < tokens.length - 1; i += 2) {
+    const value = Number(tokens[i + 1]) || 0;
+    const last = terms[terms.length - 1] as number;
+    if (tokens[i] === '×') terms[terms.length - 1] = last * value;
+    else if (tokens[i] === '÷') terms[terms.length - 1] = value === 0 ? 0 : last / value;
+    else terms.push(tokens[i], value);
+  }
+
+  let total = terms[0] as number;
+  for (let i = 1; i < terms.length - 1; i += 2) {
+    const value = terms[i + 1] as number;
+    total = terms[i] === '+' ? total + value : total - value;
+  }
+  return Number.isFinite(total) ? total : 0;
+};
+
 export default function MonthlyChecklist({ transactions, onAdd, onDelete, onToggleChecked, onUpdate, canEdit, hiddenCategories, onHideCategory }: Props) {
   const now = new Date();
   const [activeMonth, setActiveMonth] = useState(now.getMonth());
@@ -175,6 +203,9 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
   const [recurring, setRecurring] = useState(false);
+  const [sheetMode, setSheetMode] = useState<'category' | 'keypad'>('category');
+  const [addKind, setAddKind] = useState<'bill' | 'shopping'>('bill');
+  const [showCategoryInput, setShowCategoryInput] = useState(false);
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragX, setDragX] = useState(0);
@@ -253,6 +284,17 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
     const all = Array.from(new Set(transactions.map(t => t.category).filter(Boolean)));
     return all.filter(c => !hiddenCategories.includes(c));
   }, [transactions, hiddenCategories]);
+
+  // The most-used categories, offered as one-tap chips next to the description.
+  const quickCategories = useMemo(() => {
+    const counts = new Map<string, number>();
+    transactions.forEach(t => {
+      if (t.category) counts.set(t.category, (counts.get(t.category) ?? 0) + 1);
+    });
+    return [...knownCategories]
+      .sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0))
+      .slice(0, 4);
+  }, [transactions, knownCategories]);
 
   const monthTransactions = useMemo(() => {
     return transactions
@@ -467,18 +509,34 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeMonth, activeYear, transactions]);
 
+  const pressKey = (key: string) => {
+    setAmount(prev => {
+      if (key === 'back') return prev.slice(0, -1);
+      if (OPERATORS.includes(key)) {
+        if (!prev) return prev;
+        return OPERATORS.includes(prev.slice(-1)) ? prev.slice(0, -1) + key : prev + key;
+      }
+      if (key === '.') {
+        const lastNumber = prev.split(/[+−×÷]/).pop() ?? '';
+        if (lastNumber.includes('.')) return prev;
+        return lastNumber === '' ? prev + '0.' : prev + '.';
+      }
+      return prev + key;
+    });
+  };
+
   const handleAdd = () => {
     if (!name.trim()) return;
-    const isShopping = activeTab === 'shopping';
+    const isShopping = addKind === 'shopping';
     const day = Math.min(now.getDate(), 28);
     const date = isShopping ? (shopDate || toDateStr(activeYear, activeMonth, day)) : toDateStr(activeYear, activeMonth, day);
     onAdd({
-      amount: parseFloat(amount) || 0,
+      amount: evaluateAmount(amount),
       date,
       category: category.trim() || 'Uncategorized',
       name: name.trim(),
       type: 'expense',
-      kind: isShopping ? 'shopping' : 'bill',
+      kind: addKind,
       recurring: isShopping ? false : recurring,
       note: ''
     });
@@ -487,6 +545,8 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
     setAmount('');
     setRecurring(false);
     setShopDate('');
+    setSheetMode('category');
+    setShowCategoryInput(false);
     setShowAddModal(false);
   };
 
@@ -893,9 +953,11 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
       {canEdit && activeTab !== 'category' && (
         <button
           onClick={() => {
-            if (activeTab === 'shopping') {
-              setShopDate(toDateStr(activeYear, activeMonth, Math.min(now.getDate(), 28)));
-            }
+            const isShopping = activeTab === 'shopping';
+            setAddKind(isShopping ? 'shopping' : 'bill');
+            setShopDate(isShopping ? toDateStr(activeYear, activeMonth, Math.min(now.getDate(), 28)) : '');
+            setSheetMode('category');
+            setShowCategoryInput(false);
             setShowAddModal(true);
           }}
           aria-label={activeTab === 'shopping' ? 'Add shopping expense' : 'Add expense'}
@@ -927,70 +989,169 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
             className="pointer-events-none fixed inset-x-0 z-20 flex items-end justify-center motion-safe:transition-[top,height] motion-safe:duration-200 motion-safe:ease-out sm:items-center"
             style={{ top: visualViewportTop, height: visualViewportHeight ?? '100dvh' }}
           >
-            <div
-              className="pointer-events-auto max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl"
-            >
-            <div className="mb-4 flex items-center justify-between">
-              <h4 className="text-base font-semibold text-slate-900">{activeTab === 'shopping' ? 'Add shopping expense' : 'Add expense'}</h4>
-              <button onClick={() => setShowAddModal(false)} aria-label="Close" className="rounded-full p-1 text-slate-400 hover:bg-slate-100">
-                <X className="h-4 w-4" />
+            <div className="pointer-events-auto max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-white pb-5 shadow-xl sm:rounded-3xl">
+              <div className="flex justify-center pt-2.5">
+                <div className="h-1 w-9 rounded-full bg-slate-200" />
+              </div>
+
+              <div className="relative px-5 pt-3">
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  aria-label="Close"
+                  className="absolute left-5 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`flex h-14 w-14 items-center justify-center rounded-full text-lg font-semibold ${
+                      category ? colorFor(category).chip : 'bg-slate-100 text-slate-300'
+                    }`}
+                  >
+                    {category ? category.trim().charAt(0).toUpperCase() : <Wallet2 className="h-6 w-6" />}
+                  </div>
+                  <p className="mt-1.5 max-w-[12rem] truncate text-xs text-slate-400">{category || 'Select category'}</p>
+                </div>
+              </div>
+
+              <button type="button" onClick={() => setSheetMode('keypad')} className="flex w-full flex-col items-center py-3">
+                <span className="text-4xl font-bold tracking-tight text-slate-900">{amount || '0'}</span>
+                {[...amount].some(ch => OPERATORS.includes(ch)) && (
+                  <span className="mt-1 text-xs font-medium text-slate-400">= {evaluateAmount(amount).toFixed(2)}</span>
+                )}
               </button>
-            </div>
-            <div className="space-y-2.5">
-              <input
-                placeholder="Item name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoFocus
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base text-slate-900 outline-none focus:border-slate-400 sm:text-sm"
-              />
-              <CategoryPicker
-                value={category}
-                onChange={setCategory}
-                categories={knownCategories}
-                placeholder="Category (type your own)"
-                onDeleteCategory={(c) => {
-                  onHideCategory(c);
-                  if (category === c) setCategory('');
-                }}
-              />
-              <input
-                type="number"
-                step="0.01"
-                placeholder="Amount"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base text-slate-900 outline-none focus:border-slate-400 sm:text-sm"
-              />
-              {activeTab === 'shopping' ? (
-                <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white focus-within:border-slate-400">
-                  <input
-                    type="date"
-                    value={shopDate}
-                    onChange={(e) => setShopDate(e.target.value)}
-                    min={toDateStr(activeYear, activeMonth, 1)}
-                    max={toDateStr(activeYear, activeMonth, daysInMonth(activeYear, activeMonth))}
-                    className="block w-full min-w-0 max-w-full border-0 bg-transparent px-3 py-2.5 text-base text-slate-700 outline-none sm:text-sm"
-                  />
+
+              <div className="mx-5 rounded-2xl bg-slate-50 p-3.5">
+                <input
+                  placeholder="Describe your transaction"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-400 sm:text-sm"
+                />
+                {quickCategories.length > 0 && (
+                  <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-0.5">
+                    {quickCategories.map(c => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setCategory(category === c ? '' : c)}
+                        className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium ${
+                          category === c ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'
+                        }`}
+                      >
+                        {category === c ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />} {c}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 flex items-center gap-2 px-5">
+                {addKind === 'shopping' ? (
+                  <div className="relative flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {shopDate ? shortDate(shopDate) : 'Today'}
+                    <input
+                      type="date"
+                      aria-label="Date"
+                      value={shopDate}
+                      onChange={(e) => setShopDate(e.target.value)}
+                      min={toDateStr(activeYear, activeMonth, 1)}
+                      max={toDateStr(activeYear, activeMonth, daysInMonth(activeYear, activeMonth))}
+                      className="absolute inset-0 h-full w-full opacity-0"
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setRecurring(r => !r)}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+                      recurring ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    <Repeat className="h-3.5 w-3.5" /> {recurring ? 'Repeats monthly' : "Don't repeat"}
+                  </button>
+                )}
+              </div>
+
+              {sheetMode === 'keypad' ? (
+                <div className="mt-3 grid grid-cols-4 gap-2 px-5">
+                  {KEYPAD_KEYS.map(key => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => pressKey(key)}
+                      aria-label={key === 'back' ? 'Delete' : key}
+                      className={`flex h-12 items-center justify-center rounded-2xl text-lg font-medium active:bg-slate-200 ${
+                        OPERATORS.includes(key) || key === 'back' ? 'bg-slate-100 text-slate-600' : 'bg-slate-50 text-slate-900'
+                      }`}
+                    >
+                      {key === 'back' ? <Delete className="h-5 w-5" /> : key}
+                    </button>
+                  ))}
                 </div>
               ) : (
-                <label className="flex items-center gap-2 px-0.5 py-1 text-xs text-slate-600">
-                  <input
-                    type="checkbox"
-                    checked={recurring}
-                    onChange={(e) => setRecurring(e.target.checked)}
-                    className="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
-                  />
-                  Repeat every month
-                </label>
+                <div className="mt-4 px-5">
+                  <p className="text-sm font-semibold text-slate-900">Select category</p>
+                  <div className="mt-3 grid grid-cols-4 gap-x-2 gap-y-3">
+                    {knownCategories.map(c => (
+                      <button key={c} type="button" onClick={() => setCategory(category === c ? '' : c)} className="flex flex-col items-center gap-1.5">
+                        <span
+                          className={`flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold ${colorFor(c).chip} ${
+                            category === c ? 'ring-2 ring-slate-900 ring-offset-2' : ''
+                          }`}
+                        >
+                          {c.charAt(0).toUpperCase()}
+                        </span>
+                        <span className="w-full truncate text-center text-[11px] text-slate-500">{c}</span>
+                      </button>
+                    ))}
+                    <button type="button" onClick={() => setShowCategoryInput(v => !v)} className="flex flex-col items-center gap-1.5">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-slate-300 text-slate-400">
+                        <Plus className="h-5 w-5" />
+                      </span>
+                      <span className="w-full truncate text-center text-[11px] text-slate-500">New</span>
+                    </button>
+                  </div>
+                  {showCategoryInput && (
+                    <div className="mt-3">
+                      <CategoryPicker
+                        value={category}
+                        onChange={setCategory}
+                        categories={knownCategories}
+                        placeholder="Category (type your own)"
+                        onDeleteCategory={(c) => {
+                          onHideCategory(c);
+                          if (category === c) setCategory('');
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
               )}
-              <button
-                onClick={handleAdd}
-                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-3 text-sm font-medium text-white hover:bg-slate-800"
-              >
-                <Plus className="h-3.5 w-3.5" /> {activeTab === 'shopping' ? 'Log expense' : 'Add to list'}
-              </button>
-            </div>
+
+              <div className="mt-5 px-5">
+                <div className="flex gap-1 rounded-full bg-slate-100 p-1 text-sm font-medium">
+                  {(['bill', 'shopping'] as const).map(k => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setAddKind(k)}
+                      className={`flex-1 rounded-full py-1.5 transition-colors ${
+                        addKind === k ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                      }`}
+                    >
+                      {k === 'bill' ? 'Bill' : 'Spending'}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={handleAdd}
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-3 text-sm font-medium text-white hover:bg-slate-800"
+                >
+                  <Plus className="h-3.5 w-3.5" /> {addKind === 'shopping' ? 'Log expense' : 'Add to list'}
+                </button>
+              </div>
             </div>
           </div>
         </>
