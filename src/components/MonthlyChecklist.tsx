@@ -924,7 +924,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
               the keyboard animates can never leave a gap of undimmed page showing through. */}
           <div className="fixed inset-0 z-20 bg-slate-900/30" onClick={() => setShowAddModal(false)} />
           <div
-            className="pointer-events-none fixed inset-x-0 z-20 flex items-end justify-center sm:items-center"
+            className="pointer-events-none fixed inset-x-0 z-20 flex items-end justify-center motion-safe:transition-[top,height] motion-safe:duration-200 motion-safe:ease-out sm:items-center"
             style={{ top: visualViewportTop, height: visualViewportHeight ?? '100dvh' }}
           >
             <div

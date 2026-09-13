@@ -78,7 +78,7 @@ export default function ShareModal({ onClose, canEdit, viewers, inviteViewer, re
           the keyboard animates can never leave a gap of undimmed page showing through. */}
       <div className="fixed inset-0 z-30 bg-slate-900/30" onClick={onClose} />
       <div
-        className="pointer-events-none fixed inset-x-0 z-30 flex items-end justify-center sm:items-center"
+        className="pointer-events-none fixed inset-x-0 z-30 flex items-end justify-center motion-safe:transition-[top,height] motion-safe:duration-200 motion-safe:ease-out sm:items-center"
         style={{ top: visualViewportTop, height: visualViewportHeight ?? '100dvh' }}
       >
         <div className="pointer-events-auto max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl border border-white/60 bg-white/75 p-5 shadow-2xl backdrop-blur-2xl sm:rounded-3xl">
