@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useLayoutEffect, useRef, PointerEvent as 
 import { Trash2, Plus, Check, Repeat, ChevronLeft, ChevronRight, X, Wallet2, ListChecks, Download } from 'lucide-react';
 import { Transaction } from '../types';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
-import { useVisualViewport } from '../hooks/useVisualViewportHeight';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -308,7 +307,6 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
   const [selectedExportCategories, setSelectedExportCategories] = useState<string[]>([]);
 
   useLockBodyScroll(showAddModal || showExportModal);
-  const { height: visualViewportHeight, top: visualViewportTop } = useVisualViewport();
 
   const openExportModal = () => {
     setSelectedExportCategories(categoryTotals.map(([cat]) => cat));
@@ -919,14 +917,8 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
       {/* Add item bottom sheet */}
       {canEdit && showAddModal && (
         <>
-          {/* Dim backdrop: always the full layout viewport, independent of the keyboard-aware
-              positioning below, so a transient mismatch between visualViewport height/top while
-              the keyboard animates can never leave a gap of undimmed page showing through. */}
           <div className="fixed inset-0 z-20 bg-slate-900/30" onClick={() => setShowAddModal(false)} />
-          <div
-            className="pointer-events-none fixed inset-x-0 z-20 flex items-end justify-center sm:items-center"
-            style={{ top: visualViewportTop, height: visualViewportHeight ?? '100dvh' }}
-          >
+          <div className="pointer-events-none fixed inset-0 z-20 flex items-end justify-center sm:items-center">
             <div
               className="pointer-events-auto max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl"
             >
