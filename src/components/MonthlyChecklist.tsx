@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useLayoutEffect, useRef, PointerEvent as 
 import { Trash2, Plus, Check, Repeat, ChevronLeft, ChevronRight, X, Wallet2, ListChecks, Download, Calendar, Delete } from 'lucide-react';
 import { Transaction } from '../types';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
-import { useVisualViewport } from '../hooks/useVisualViewportHeight';
+import { useVisualViewport, ACCESSORY_BAR_INSET } from '../hooks/useVisualViewportHeight';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -350,7 +350,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
   const [selectedExportCategories, setSelectedExportCategories] = useState<string[]>([]);
 
   useLockBodyScroll(showAddModal || showExportModal);
-  const { height: visualViewportHeight, top: visualViewportTop } = useVisualViewport();
+  const { height: visualViewportHeight, top: visualViewportTop, keyboardOpen } = useVisualViewport();
 
   const openExportModal = () => {
     setSelectedExportCategories(categoryTotals.map(([cat]) => cat));
@@ -989,7 +989,15 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
             className="pointer-events-none fixed inset-x-0 z-20 flex items-end justify-center motion-safe:transition-[top,height] motion-safe:duration-200 motion-safe:ease-out sm:items-center"
             style={{ top: visualViewportTop, height: visualViewportHeight ?? '100dvh' }}
           >
-            <div className="pointer-events-auto max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-white pb-5 shadow-xl sm:rounded-3xl">
+            {/* iOS overlays its keyboard accessory bar on top of the visual viewport rather than
+                shrinking it, so anything drawn in that bottom strip shows through the bar's
+                translucency. The padding below sits outside the scroller, so the sheet's own
+                background fills that strip and no content can scroll behind the bar. */}
+            <div
+              className="pointer-events-auto flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+              style={{ paddingBottom: keyboardOpen ? ACCESSORY_BAR_INSET : undefined }}
+            >
+             <div className="min-h-0 overflow-y-auto overscroll-contain pb-5">
               <div className="flex justify-center pt-2.5">
                 <div className="h-1 w-9 rounded-full bg-slate-200" />
               </div>
@@ -1152,6 +1160,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                   <Plus className="h-3.5 w-3.5" /> {addKind === 'shopping' ? 'Log expense' : 'Add to list'}
                 </button>
               </div>
+             </div>
             </div>
           </div>
         </>
