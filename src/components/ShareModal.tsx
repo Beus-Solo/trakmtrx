@@ -3,7 +3,7 @@ import { X, Trash2, UserPlus, LogOut, Pencil, Eye } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usernameToEmail, emailToUsername } from '../lib/username';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
-import { useVisualViewport } from '../hooks/useVisualViewportHeight';
+import { useVisualViewport, ACCESSORY_BAR_INSET } from '../hooks/useVisualViewportHeight';
 
 interface Viewer {
   id: string;
@@ -25,7 +25,7 @@ export default function ShareModal({ onClose, canEdit, viewers, inviteViewer, re
   const { user, signOut, secureAccount } = useAuth();
   const isAnonymous = (user as any)?.is_anonymous === true;
   useLockBodyScroll(true);
-  const { height: visualViewportHeight, top: visualViewportTop } = useVisualViewport();
+  const { height: visualViewportHeight, top: visualViewportTop, keyboardOpen } = useVisualViewport();
 
   const [inviteUsername, setInviteUsername] = useState('');
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -81,7 +81,14 @@ export default function ShareModal({ onClose, canEdit, viewers, inviteViewer, re
         className="pointer-events-none fixed inset-x-0 z-30 flex items-end justify-center motion-safe:transition-[top,height] motion-safe:duration-200 motion-safe:ease-out sm:items-center"
         style={{ top: visualViewportTop, height: visualViewportHeight ?? '100dvh' }}
       >
-        <div className="pointer-events-auto max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl border border-white/60 bg-white/75 p-5 shadow-2xl backdrop-blur-2xl sm:rounded-3xl">
+        {/* The bottom inset sits outside the scroller so the sheet's own surface fills the strip
+            iOS covers with its translucent keyboard accessory bar, instead of content showing
+            through it. */}
+        <div
+          className="pointer-events-auto flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-white/60 bg-white/75 shadow-2xl backdrop-blur-2xl sm:rounded-3xl"
+          style={{ paddingBottom: keyboardOpen ? ACCESSORY_BAR_INSET : undefined }}
+        >
+         <div className="min-h-0 overflow-y-auto overscroll-contain p-5">
         <div className="mb-4 flex items-center justify-between">
           <h4 className="text-base font-semibold text-slate-900">Account</h4>
           <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-slate-400 hover:bg-white/60 hover:text-slate-700">
@@ -217,6 +224,7 @@ export default function ShareModal({ onClose, canEdit, viewers, inviteViewer, re
         >
           <LogOut className="h-3.5 w-3.5" /> Sign out
         </button>
+         </div>
         </div>
       </div>
     </>
