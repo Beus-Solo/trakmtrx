@@ -994,7 +994,9 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                 translucency. The padding below sits outside the scroller, so the sheet's own
                 background fills that strip and no content can scroll behind the bar. */}
             <div
-              className="pointer-events-auto flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+              className={`pointer-events-auto flex max-h-full w-full max-w-md flex-col overflow-hidden bg-white shadow-xl sm:rounded-3xl ${
+                keyboardOpen ? 'h-full' : 'rounded-t-3xl'
+              }`}
               style={{ paddingBottom: keyboardOpen ? ACCESSORY_BAR_INSET : undefined }}
             >
              <div className="min-h-0 overflow-y-auto overscroll-contain pb-5">
