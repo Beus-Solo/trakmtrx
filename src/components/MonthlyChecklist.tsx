@@ -39,58 +39,6 @@ const categoryHash = (category: string) => {
 const colorFor = (category: string) => CATEGORY_COLORS[categoryHash(category) % CATEGORY_COLORS.length];
 const hexColorFor = (category: string) => CATEGORY_HEX[categoryHash(category) % CATEGORY_HEX.length];
 
-function CategoryPicker({ value, onChange, categories, placeholder, onDeleteCategory }: { value: string; onChange: (v: string) => void; categories: string[]; placeholder: string; onDeleteCategory?: (c: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const filtered = categories.filter(c => c.toLowerCase().includes(value.trim().toLowerCase()));
-
-  return (
-    <div ref={wrapRef} className="relative">
-      <input
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base text-slate-900 outline-none focus:border-slate-400 sm:text-sm"
-      />
-      {open && filtered.length > 0 && (
-        <div className="absolute z-30 mt-1 max-h-40 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
-          {filtered.map(c => (
-            <div key={c} className="flex items-center gap-1 rounded-lg hover:bg-slate-50">
-              <button
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); onChange(c); setOpen(false); }}
-                className="flex-1 truncate px-3 py-2 text-left text-sm text-slate-700"
-              >
-                {c}
-              </button>
-              {onDeleteCategory && (
-                <button
-                  type="button"
-                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteCategory(c); }}
-                  aria-label={`Delete ${c} category`}
-                  className="shrink-0 rounded-lg p-2 text-slate-300 hover:bg-red-50 hover:text-red-500"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 type NewTransaction = Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'checked'>;
 
 interface Props {
@@ -206,6 +154,8 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
   const [sheetMode, setSheetMode] = useState<'category' | 'keypad'>('category');
   const [addKind, setAddKind] = useState<'bill' | 'shopping'>('bill');
   const [showCategoryInput, setShowCategoryInput] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
+  const [editingCategories, setEditingCategories] = useState(false);
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragX, setDragX] = useState(0);
@@ -509,6 +459,14 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeMonth, activeYear, transactions]);
 
+  const commitNewCategory = () => {
+    const value = newCategory.trim();
+    if (!value) return;
+    setCategory(value);
+    setNewCategory('');
+    setShowCategoryInput(false);
+  };
+
   const pressKey = (key: string) => {
     setAmount(prev => {
       if (key === 'back') return prev.slice(0, -1);
@@ -547,6 +505,8 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
     setShopDate('');
     setSheetMode('category');
     setShowCategoryInput(false);
+    setNewCategory('');
+    setEditingCategories(false);
     setShowAddModal(false);
   };
 
@@ -958,6 +918,8 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
             setShopDate(isShopping ? toDateStr(activeYear, activeMonth, Math.min(now.getDate(), 28)) : '');
             setSheetMode('category');
             setShowCategoryInput(false);
+            setNewCategory('');
+            setEditingCategories(false);
             setShowAddModal(true);
           }}
           aria-label={activeTab === 'shopping' ? 'Add shopping expense' : 'Add expense'}
@@ -1102,39 +1064,88 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                 </div>
               ) : (
                 <div className="mt-4 px-5">
-                  <p className="text-sm font-semibold text-slate-900">Select category</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-900">Select category</p>
+                    {knownCategories.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingCategories(v => !v)}
+                        className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                      >
+                        {editingCategories ? 'Done' : 'Edit'}
+                      </button>
+                    )}
+                  </div>
                   <div className="mt-3 grid grid-cols-4 gap-x-2 gap-y-3">
                     {knownCategories.map(c => (
-                      <button key={c} type="button" onClick={() => setCategory(category === c ? '' : c)} className="flex flex-col items-center gap-1.5">
-                        <span
-                          className={`flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold ${colorFor(c).chip} ${
-                            category === c ? 'ring-2 ring-slate-900 ring-offset-2' : ''
-                          }`}
+                      <div key={c} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setCategory(category === c ? '' : c)}
+                          className="flex w-full flex-col items-center gap-1.5"
                         >
-                          {c.charAt(0).toUpperCase()}
-                        </span>
-                        <span className="w-full truncate text-center text-[11px] text-slate-500">{c}</span>
-                      </button>
+                          <span
+                            className={`flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold ${colorFor(c).chip} ${
+                              category === c ? 'ring-2 ring-slate-900 ring-offset-2' : ''
+                            }`}
+                          >
+                            {c.charAt(0).toUpperCase()}
+                          </span>
+                          <span className="w-full truncate text-center text-[11px] text-slate-500">{c}</span>
+                        </button>
+                        {editingCategories && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onHideCategory(c);
+                              if (category === c) setCategory('');
+                            }}
+                            aria-label={`Remove ${c}`}
+                            className="absolute -top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-white shadow-sm"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
                     ))}
-                    <button type="button" onClick={() => setShowCategoryInput(v => !v)} className="flex flex-col items-center gap-1.5">
-                      <span className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-slate-300 text-slate-400">
+                    <button
+                      type="button"
+                      onClick={() => setShowCategoryInput(v => !v)}
+                      className="flex w-full flex-col items-center gap-1.5"
+                    >
+                      <span
+                        className={`flex h-12 w-12 items-center justify-center rounded-full border border-dashed text-slate-400 ${
+                          showCategoryInput ? 'border-slate-400 bg-slate-50' : 'border-slate-300'
+                        }`}
+                      >
                         <Plus className="h-5 w-5" />
                       </span>
                       <span className="w-full truncate text-center text-[11px] text-slate-500">New</span>
                     </button>
                   </div>
                   {showCategoryInput && (
-                    <div className="mt-3">
-                      <CategoryPicker
-                        value={category}
-                        onChange={setCategory}
-                        categories={knownCategories}
-                        placeholder="Category (type your own)"
-                        onDeleteCategory={(c) => {
-                          onHideCategory(c);
-                          if (category === c) setCategory('');
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        autoFocus
+                        placeholder="Name your category"
+                        value={newCategory}
+                        onChange={(e) => setNewCategory(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            commitNewCategory();
+                          }
                         }}
+                        className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base text-slate-900 outline-none focus:border-slate-400 sm:text-sm"
                       />
+                      <button
+                        type="button"
+                        onClick={commitNewCategory}
+                        disabled={!newCategory.trim()}
+                        className="shrink-0 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white disabled:opacity-40"
+                      >
+                        Add
+                      </button>
                     </div>
                   )}
                 </div>
