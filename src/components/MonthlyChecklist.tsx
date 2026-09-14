@@ -300,12 +300,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
   const [selectedExportCategories, setSelectedExportCategories] = useState<string[]>([]);
 
   useLockBodyScroll(showAddModal || showExportModal);
-  const { height: visualViewportHeight, keyboardOpen, keyboardInset, layoutHeight } = useVisualViewport();
-  // The sheet reaches the bottom of the layout viewport; this much of it is hidden by the keyboard
-  // (plus iOS's accessory bar), so it becomes padding that keeps content in the visible area.
-  const sheetBottomInset = keyboardOpen ? keyboardInset + ACCESSORY_BAR_INSET : 0;
-  const sheetMaxHeight =
-    visualViewportHeight === undefined ? undefined : Math.min(layoutHeight, visualViewportHeight + sheetBottomInset);
+  const { height: visualViewportHeight, top: visualViewportTop, keyboardOpen } = useVisualViewport();
 
   const openExportModal = () => {
     setSelectedExportCategories(categoryTotals.map(([cat]) => cat));
@@ -950,21 +945,21 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
         <>
           {/* Dim backdrop: always the full layout viewport, independent of the keyboard-aware
               positioning below, so a transient mismatch between visualViewport height/top while
-              the keyboard animates can never leave a gap of undimmed page showing through. */}
+              the keyboard animates can never leave a gap of undimmed page showing through — any
+              such gap shows this translucent dim, never raw page content. */}
           <div className="fixed inset-0 z-20 bg-slate-900/30" onClick={() => setShowAddModal(false)} />
-          {/* The sheet is anchored to the layout viewport's bottom, so its own surface always
-              reaches the bottom of the screen and runs *under* the keyboard. The keyboard's height
-              becomes bottom padding rather than a shorter box, which keeps the content above the
-              keyboard while making it impossible for the dim backdrop to show through beneath the
-              sheet — even when iOS reports a visual viewport height that is too small.
-              ACCESSORY_BAR_INSET additionally clears iOS's translucent accessory bar, which is
-              drawn over the visual viewport instead of shrinking it. */}
-          <div className="pointer-events-none fixed inset-0 z-20 flex items-end justify-center sm:items-center">
+          {/* The sheet stays sized to its own content, positioned within the keyboard-aware visual
+              viewport, so any empty space above a short sheet shows the dim backdrop above — not a
+              solid white box stretched to fill the screen. ACCESSORY_BAR_INSET reserves space at
+              the bottom so content doesn't sit behind iOS's translucent keyboard accessory bar,
+              which is drawn over the visual viewport instead of shrinking it. */}
+          <div
+            className="pointer-events-none fixed inset-x-0 z-20 flex items-end justify-center motion-safe:transition-[top,height] motion-safe:duration-200 motion-safe:ease-out sm:items-center"
+            style={{ top: visualViewportTop, height: visualViewportHeight ?? '100dvh' }}
+          >
             <div
-              className={`pointer-events-auto flex max-h-full w-full max-w-md flex-col overflow-hidden bg-white shadow-xl motion-safe:transition-[height,max-height,padding-bottom] motion-safe:duration-200 motion-safe:ease-out sm:rounded-3xl ${
-                keyboardOpen ? '' : 'rounded-t-3xl'
-              }`}
-              style={{ paddingBottom: sheetBottomInset || undefined, maxHeight: sheetMaxHeight, height: keyboardOpen ? sheetMaxHeight : undefined }}
+              className="pointer-events-auto flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+              style={{ paddingBottom: keyboardOpen ? ACCESSORY_BAR_INSET : undefined }}
             >
              <div className="min-h-0 overflow-y-auto overscroll-contain pb-5">
               <div className="flex justify-center pt-2.5">
