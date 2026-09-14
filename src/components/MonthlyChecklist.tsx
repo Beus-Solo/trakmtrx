@@ -156,6 +156,11 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
   const [showCategoryInput, setShowCategoryInput] = useState(false);
   const [newCategory, setNewCategory] = useState('');
   const [editingCategories, setEditingCategories] = useState(false);
+  // While typing the description, collapse the category grid / keypad and the Bill/Spending +
+  // Add-to-list controls out of the way — they'd otherwise sit hidden behind the keyboard anyway.
+  // Leaving just the header, amount and description visible above the keyboard, with the
+  // date/repeat chip pinned right below them, matches how a native iOS entry sheet behaves.
+  const [descriptionFocused, setDescriptionFocused] = useState(false);
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragX, setDragX] = useState(0);
@@ -507,6 +512,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
     setShowCategoryInput(false);
     setNewCategory('');
     setEditingCategories(false);
+    setDescriptionFocused(false);
     setShowAddModal(false);
   };
 
@@ -920,6 +926,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
             setShowCategoryInput(false);
             setNewCategory('');
             setEditingCategories(false);
+            setDescriptionFocused(false);
             setShowAddModal(true);
           }}
           aria-label={activeTab === 'shopping' ? 'Add shopping expense' : 'Add expense'}
@@ -1002,6 +1009,8 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                   placeholder="Describe your transaction"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  onFocus={() => setDescriptionFocused(true)}
+                  onBlur={() => setDescriptionFocused(false)}
                   className="w-full bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-400 sm:text-sm"
                 />
                 {quickCategories.length > 0 && (
@@ -1059,7 +1068,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                 )}
               </div>
 
-              {sheetMode === 'keypad' ? (
+              {!descriptionFocused && (sheetMode === 'keypad' ? (
                 <div className="mt-3 grid grid-cols-4 gap-2 px-5">
                   {KEYPAD_KEYS.map(key => (
                     <button
@@ -1162,30 +1171,32 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                     </div>
                   )}
                 </div>
-              )}
+              ))}
 
-              <div className="mt-5 px-5">
-                <div className="flex gap-1 rounded-full bg-slate-100 p-1 text-sm font-medium">
-                  {(['bill', 'shopping'] as const).map(k => (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => setAddKind(k)}
-                      className={`flex-1 rounded-full py-1.5 transition-colors ${
-                        addKind === k ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
-                      }`}
-                    >
-                      {k === 'bill' ? 'Bill' : 'Spending'}
-                    </button>
-                  ))}
+              {!descriptionFocused && (
+                <div className="mt-5 px-5">
+                  <div className="flex gap-1 rounded-full bg-slate-100 p-1 text-sm font-medium">
+                    {(['bill', 'shopping'] as const).map(k => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setAddKind(k)}
+                        className={`flex-1 rounded-full py-1.5 transition-colors ${
+                          addKind === k ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                        }`}
+                      >
+                        {k === 'bill' ? 'Bill' : 'Spending'}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={handleAdd}
+                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-3 text-sm font-medium text-white hover:bg-slate-800"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> {addKind === 'shopping' ? 'Log expense' : 'Add to list'}
+                  </button>
                 </div>
-                <button
-                  onClick={handleAdd}
-                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-3 text-sm font-medium text-white hover:bg-slate-800"
-                >
-                  <Plus className="h-3.5 w-3.5" /> {addKind === 'shopping' ? 'Log expense' : 'Add to list'}
-                </button>
-              </div>
+              )}
              </div>
             </div>
           </div>
