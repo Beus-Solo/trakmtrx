@@ -943,14 +943,14 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
       {/* Add item bottom sheet */}
       {canEdit && showAddModal && (
         <>
-          {/* Dim backdrop: always the full layout viewport, independent of the keyboard-aware
-              positioning below, so a transient mismatch between visualViewport height/top while
-              the keyboard animates can never leave a gap of undimmed page showing through — any
-              such gap shows this translucent dim, never raw page content. */}
-          <div className="fixed inset-0 z-20 bg-slate-900/30" onClick={() => setShowAddModal(false)} />
+          {/* Frosted glass backdrop: always the full layout viewport, independent of the
+              keyboard-aware positioning below, so a transient mismatch between visualViewport
+              height/top while the keyboard animates can never leave a gap of undimmed page
+              showing through — any such gap shows this translucent blur, never raw page content. */}
+          <div className="fixed inset-0 z-20 bg-white/10 backdrop-blur-md" onClick={() => setShowAddModal(false)} />
           {/* The sheet stays sized to its own content, positioned within the keyboard-aware visual
-              viewport, so any empty space above a short sheet shows the dim backdrop above — not a
-              solid white box stretched to fill the screen. ACCESSORY_BAR_INSET reserves space at
+              viewport, so any empty space above a short sheet shows the glass backdrop above — not
+              a solid white box stretched to fill the screen. ACCESSORY_BAR_INSET reserves space at
               the bottom so content doesn't sit behind iOS's translucent keyboard accessory bar,
               which is drawn over the visual viewport instead of shrinking it. */}
           <div
@@ -1194,7 +1194,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
 
       {/* Export report bottom sheet */}
       {showExportModal && (
-        <div className="fixed inset-0 z-20 flex items-end justify-center bg-slate-900/30 sm:items-center" onClick={() => setShowExportModal(false)}>
+        <div className="fixed inset-0 z-20 flex items-end justify-center bg-white/10 backdrop-blur-md sm:items-center" onClick={() => setShowExportModal(false)}>
           <div
             className="w-full max-w-md rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}

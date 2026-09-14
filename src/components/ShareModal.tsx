@@ -73,13 +73,13 @@ export default function ShareModal({ onClose, canEdit, viewers, inviteViewer, re
 
   return (
     <>
-      {/* Dim backdrop: always the full layout viewport, independent of the keyboard-aware
+      {/* Frosted glass backdrop: always the full layout viewport, independent of the keyboard-aware
           positioning below, so a transient mismatch between visualViewport height/top while
           the keyboard animates can never leave a gap of undimmed page showing through — any such
-          gap shows this translucent dim, never raw page content. */}
-      <div className="fixed inset-0 z-30 bg-slate-900/30" onClick={onClose} />
+          gap shows this translucent blur, never raw page content. */}
+      <div className="fixed inset-0 z-30 bg-white/10 backdrop-blur-md" onClick={onClose} />
       {/* The sheet stays sized to its own content, positioned within the keyboard-aware visual
-          viewport, so any empty space above a short sheet shows the dim backdrop above — not a
+          viewport, so any empty space above a short sheet shows the glass backdrop above — not a
           solid box stretched to fill the screen. ACCESSORY_BAR_INSET reserves space at the bottom
           so content doesn't sit behind iOS's translucent keyboard accessory bar. */}
       <div
