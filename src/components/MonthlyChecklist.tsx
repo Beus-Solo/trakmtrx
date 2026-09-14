@@ -986,7 +986,11 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                 </div>
               </div>
 
-              <button type="button" onClick={() => setSheetMode('keypad')} className="flex w-full flex-col items-center py-3">
+              <button
+                type="button"
+                onClick={() => setSheetMode(m => (m === 'keypad' ? 'category' : 'keypad'))}
+                className="flex w-full flex-col items-center py-3"
+              >
                 <span className="text-4xl font-bold tracking-tight text-slate-900">{amount || '0'}</span>
                 {[...amount].some(ch => OPERATORS.includes(ch)) && (
                   <span className="mt-1 text-xs font-medium text-slate-400">= {evaluateAmount(amount).toFixed(2)}</span>
@@ -1042,6 +1046,15 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                     }`}
                   >
                     <Repeat className="h-3.5 w-3.5" /> {recurring ? 'Repeats monthly' : "Don't repeat"}
+                  </button>
+                )}
+                {sheetMode === 'keypad' && (
+                  <button
+                    type="button"
+                    onClick={() => setSheetMode('category')}
+                    className="ml-auto flex items-center gap-1.5 rounded-full bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-white"
+                  >
+                    <Check className="h-3.5 w-3.5" /> Done
                   </button>
                 )}
               </div>
