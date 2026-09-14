@@ -4,12 +4,6 @@ interface ViewportMetrics {
   height: number | undefined;
   top: number;
   keyboardOpen: boolean;
-  // How much of the layout viewport's bottom the keyboard covers. `position: fixed` is measured
-  // against the layout viewport, which iOS does not shrink for the keyboard, so a sheet pinned to
-  // bottom:0 reaches under it by exactly this much.
-  keyboardInset: number;
-  // The layout viewport's height — what a bottom-anchored fixed element is measured against.
-  layoutHeight: number;
 }
 
 // How long to keep re-measuring after anything that could move the viewport. The keyboard
@@ -31,9 +25,7 @@ export function useVisualViewport(): ViewportMetrics {
   const [metrics, setMetrics] = useState<ViewportMetrics>(() => ({
     height: window.visualViewport?.height,
     top: window.visualViewport?.offsetTop ?? 0,
-    keyboardOpen: false,
-    keyboardInset: 0,
-    layoutHeight: window.innerHeight
+    keyboardOpen: false
   }));
 
   useEffect(() => {
@@ -45,16 +37,10 @@ export function useVisualViewport(): ViewportMetrics {
 
     const measure = () =>
       setMetrics(prev => {
-        const layoutHeight = window.innerHeight;
-        const keyboardInset = Math.max(0, layoutHeight - (vv.offsetTop + vv.height));
-        const keyboardOpen = keyboardInset > KEYBOARD_MIN_HEIGHT;
-        return prev.height === vv.height &&
-          prev.top === vv.offsetTop &&
-          prev.keyboardInset === keyboardInset &&
-          prev.keyboardOpen === keyboardOpen &&
-          prev.layoutHeight === layoutHeight
+        const keyboardOpen = window.innerHeight - vv.height > KEYBOARD_MIN_HEIGHT;
+        return prev.height === vv.height && prev.top === vv.offsetTop && prev.keyboardOpen === keyboardOpen
           ? prev
-          : { height: vv.height, top: vv.offsetTop, keyboardOpen, keyboardInset, layoutHeight };
+          : { height: vv.height, top: vv.offsetTop, keyboardOpen };
       });
 
     // iOS fires visualViewport's events erratically while the keyboard animates, and frequently
