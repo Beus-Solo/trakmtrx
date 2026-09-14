@@ -300,7 +300,12 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
   const [selectedExportCategories, setSelectedExportCategories] = useState<string[]>([]);
 
   useLockBodyScroll(showAddModal || showExportModal);
-  const { height: visualViewportHeight, top: visualViewportTop, keyboardOpen } = useVisualViewport();
+  const { height: visualViewportHeight, keyboardOpen, keyboardInset, layoutHeight } = useVisualViewport();
+  // The sheet reaches the bottom of the layout viewport; this much of it is hidden by the keyboard
+  // (plus iOS's accessory bar), so it becomes padding that keeps content in the visible area.
+  const sheetBottomInset = keyboardOpen ? keyboardInset + ACCESSORY_BAR_INSET : 0;
+  const sheetMaxHeight =
+    visualViewportHeight === undefined ? undefined : Math.min(layoutHeight, visualViewportHeight + sheetBottomInset);
 
   const openExportModal = () => {
     setSelectedExportCategories(categoryTotals.map(([cat]) => cat));
@@ -947,19 +952,19 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
               positioning below, so a transient mismatch between visualViewport height/top while
               the keyboard animates can never leave a gap of undimmed page showing through. */}
           <div className="fixed inset-0 z-20 bg-slate-900/30" onClick={() => setShowAddModal(false)} />
-          <div
-            className="pointer-events-none fixed inset-x-0 z-20 flex items-end justify-center motion-safe:transition-[top,height] motion-safe:duration-200 motion-safe:ease-out sm:items-center"
-            style={{ top: visualViewportTop, height: visualViewportHeight ?? '100dvh' }}
-          >
-            {/* iOS overlays its keyboard accessory bar on top of the visual viewport rather than
-                shrinking it, so anything drawn in that bottom strip shows through the bar's
-                translucency. The padding below sits outside the scroller, so the sheet's own
-                background fills that strip and no content can scroll behind the bar. */}
+          {/* The sheet is anchored to the layout viewport's bottom, so its own surface always
+              reaches the bottom of the screen and runs *under* the keyboard. The keyboard's height
+              becomes bottom padding rather than a shorter box, which keeps the content above the
+              keyboard while making it impossible for the dim backdrop to show through beneath the
+              sheet — even when iOS reports a visual viewport height that is too small.
+              ACCESSORY_BAR_INSET additionally clears iOS's translucent accessory bar, which is
+              drawn over the visual viewport instead of shrinking it. */}
+          <div className="pointer-events-none fixed inset-0 z-20 flex items-end justify-center sm:items-center">
             <div
-              className={`pointer-events-auto flex max-h-full w-full max-w-md flex-col overflow-hidden bg-white shadow-xl sm:rounded-3xl ${
-                keyboardOpen ? 'h-full' : 'rounded-t-3xl'
+              className={`pointer-events-auto flex max-h-full w-full max-w-md flex-col overflow-hidden bg-white shadow-xl motion-safe:transition-[height,max-height,padding-bottom] motion-safe:duration-200 motion-safe:ease-out sm:rounded-3xl ${
+                keyboardOpen ? '' : 'rounded-t-3xl'
               }`}
-              style={{ paddingBottom: keyboardOpen ? ACCESSORY_BAR_INSET : undefined }}
+              style={{ paddingBottom: sheetBottomInset || undefined, maxHeight: sheetMaxHeight, height: keyboardOpen ? sheetMaxHeight : undefined }}
             >
              <div className="min-h-0 overflow-y-auto overscroll-contain pb-5">
               <div className="flex justify-center pt-2.5">

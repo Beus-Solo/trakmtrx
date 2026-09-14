@@ -25,7 +25,10 @@ export default function ShareModal({ onClose, canEdit, viewers, inviteViewer, re
   const { user, signOut, secureAccount } = useAuth();
   const isAnonymous = (user as any)?.is_anonymous === true;
   useLockBodyScroll(true);
-  const { height: visualViewportHeight, top: visualViewportTop, keyboardOpen } = useVisualViewport();
+  const { height: visualViewportHeight, keyboardOpen, keyboardInset, layoutHeight } = useVisualViewport();
+  const sheetBottomInset = keyboardOpen ? keyboardInset + ACCESSORY_BAR_INSET : 0;
+  const sheetMaxHeight =
+    visualViewportHeight === undefined ? undefined : Math.min(layoutHeight, visualViewportHeight + sheetBottomInset);
 
   const [inviteUsername, setInviteUsername] = useState('');
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -77,16 +80,13 @@ export default function ShareModal({ onClose, canEdit, viewers, inviteViewer, re
           positioning below, so a transient mismatch between visualViewport height/top while
           the keyboard animates can never leave a gap of undimmed page showing through. */}
       <div className="fixed inset-0 z-30 bg-slate-900/30" onClick={onClose} />
-      <div
-        className="pointer-events-none fixed inset-x-0 z-30 flex items-end justify-center motion-safe:transition-[top,height] motion-safe:duration-200 motion-safe:ease-out sm:items-center"
-        style={{ top: visualViewportTop, height: visualViewportHeight ?? '100dvh' }}
-      >
-        {/* The bottom inset sits outside the scroller so the sheet's own surface fills the strip
-            iOS covers with its translucent keyboard accessory bar, instead of content showing
-            through it. */}
+      {/* Anchored to the layout viewport's bottom so the sheet's own surface always reaches the
+          bottom of the screen; the keyboard's height becomes bottom padding rather than a shorter
+          box, so the dim backdrop can never show through beneath the sheet. */}
+      <div className="pointer-events-none fixed inset-0 z-30 flex items-end justify-center sm:items-center">
         <div
-          className="pointer-events-auto flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-white/60 bg-white/75 shadow-2xl backdrop-blur-2xl sm:rounded-3xl"
-          style={{ paddingBottom: keyboardOpen ? ACCESSORY_BAR_INSET : undefined }}
+          className="pointer-events-auto flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-white/60 bg-white/75 shadow-2xl backdrop-blur-2xl motion-safe:transition-[max-height,padding-bottom] motion-safe:duration-200 motion-safe:ease-out sm:rounded-3xl"
+          style={{ paddingBottom: sheetBottomInset || undefined, maxHeight: sheetMaxHeight }}
         >
          <div className="min-h-0 overflow-y-auto overscroll-contain p-5">
         <div className="mb-4 flex items-center justify-between">

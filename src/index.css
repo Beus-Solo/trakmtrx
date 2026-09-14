@@ -6,6 +6,19 @@
   }
 }
 
+/* iOS Safari zooms the page whenever a focused form control's font-size is under 16px. Enforce
+   that floor on phone-width screens so focusing any field — including ones with no font-size of
+   their own, like the overlaid date picker — never triggers the zoom. Deliberately unlayered so
+   it outranks Tailwind's utilities without !important; the sm: breakpoint (640px) keeps the
+   smaller type on larger viewports, where Safari doesn't zoom. */
+@media (max-width: 639px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 @layer utilities {
   @keyframes tab-slide-from-right {
     from { transform: translateX(28px); opacity: 0; }
