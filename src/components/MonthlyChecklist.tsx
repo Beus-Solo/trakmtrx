@@ -1167,23 +1167,9 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
 
               {!descriptionFocused && (
                 <div className="mt-5 px-5">
-                  <div className="flex gap-1 rounded-full bg-slate-100 p-1 text-sm font-medium">
-                    {(['bill', 'shopping'] as const).map(k => (
-                      <button
-                        key={k}
-                        type="button"
-                        onClick={() => setAddKind(k)}
-                        className={`flex-1 rounded-full py-1.5 transition-colors ${
-                          addKind === k ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
-                        }`}
-                      >
-                        {k === 'bill' ? 'Bill' : 'Spending'}
-                      </button>
-                    ))}
-                  </div>
                   <button
                     onClick={handleAdd}
-                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-3 text-sm font-medium text-white hover:bg-slate-800"
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-3 text-sm font-medium text-white hover:bg-slate-800"
                   >
                     <Plus className="h-3.5 w-3.5" /> {addKind === 'shopping' ? 'Log expense' : 'Add to list'}
                   </button>
