@@ -35,3 +35,35 @@
     animation: tab-slide-from-left 260ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
+
+/* One-time entrance for the login screen: the hero panel drops in, its wave settles with a
+   little overshoot right after, and the form content rises in below. Scoped to
+   prefers-reduced-motion so that with it set, these classes carry no animation at all and the
+   elements simply render in their final state — no JS fallback needed. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes hero-drop {
+    from { opacity: 0; transform: translateY(-18px); }
+    to { opacity: 1; transform: none; }
+  }
+  .animate-hero-drop {
+    animation: hero-drop 550ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes wave-settle {
+    0% { opacity: 0; transform: translateY(16px) scaleY(0.6); }
+    60% { opacity: 1; transform: translateY(-4px) scaleY(1.08); }
+    100% { opacity: 1; transform: none; }
+  }
+  .animate-wave-settle {
+    animation: wave-settle 700ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+    transform-origin: bottom;
+  }
+
+  @keyframes rise-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+  }
+  .animate-rise-in {
+    animation: rise-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}

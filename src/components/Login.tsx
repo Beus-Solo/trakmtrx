@@ -78,21 +78,27 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="relative overflow-hidden bg-slate-900 px-6 pb-16 pt-14">
+      <div className="relative overflow-hidden bg-slate-900 px-6 pb-16 pt-14 animate-hero-drop">
         <h1 className="text-3xl font-extrabold tracking-tight text-white">TRAKMTRX</h1>
         <p className="mt-2 text-sm text-slate-300">
           {mode === 'signin' ? 'Welcome back — sign in to continue.' : 'Create an account to get started.'}
         </p>
-        <svg viewBox="0 0 400 56" preserveAspectRatio="none" className="absolute inset-x-0 -bottom-px h-12 w-full text-white">
+        <svg
+          viewBox="0 0 400 56"
+          preserveAspectRatio="none"
+          className="absolute inset-x-0 -bottom-px h-12 w-full text-white animate-wave-settle"
+        >
           <path d="M0,56 C110,0 290,56 400,8 L400,56 Z" fill="currentColor" />
         </svg>
       </div>
 
       <div className="mx-auto w-full max-w-sm px-6 pb-10 pt-2">
-        <h2 className="text-2xl font-bold text-slate-900">{mode === 'signin' ? 'Login' : 'Sign up'}</h2>
+        <h2 className="text-2xl font-bold text-slate-900 animate-rise-in" style={{ animationDelay: '160ms' }}>
+          {mode === 'signin' ? 'Login' : 'Sign up'}
+        </h2>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-          <div>
+          <div className="animate-rise-in" style={{ animationDelay: '220ms' }}>
             <label htmlFor="username" className="mb-1.5 block text-xs font-medium text-slate-500">
               Username
             </label>
@@ -109,7 +115,7 @@ export default function Login() {
             />
           </div>
 
-          <div>
+          <div className="animate-rise-in" style={{ animationDelay: '280ms' }}>
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-xs font-medium text-slate-500">PIN</span>
               <button
@@ -142,17 +148,19 @@ export default function Login() {
 
           {error && <p className="text-center text-xs text-red-600">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 py-3.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
-          >
-            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            {submitting ? 'Please wait…' : mode === 'signin' ? 'Login' : 'Create account'}
-          </button>
+          <div className="animate-rise-in" style={{ animationDelay: '340ms' }}>
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{ width: submitting ? '3.5rem' : '100%' }}
+              className="mx-auto flex items-center justify-center gap-2 rounded-full bg-slate-900 py-3.5 text-sm font-semibold text-white transition-[width,transform] duration-500 ease-[cubic-bezier(0.65,0,0.35,1)] hover:bg-slate-800 active:scale-[0.97] disabled:opacity-100"
+            >
+              {submitting ? <Loader2 className="h-5 w-5 shrink-0 animate-spin" /> : mode === 'signin' ? 'Login' : 'Create account'}
+            </button>
+          </div>
         </form>
 
-        <p className="mt-8 text-center text-sm text-slate-500">
+        <p className="mt-8 text-center text-sm text-slate-500 animate-rise-in" style={{ animationDelay: '400ms' }}>
           {mode === 'signin' ? (
             <>Don't have an account? <button onClick={toggleMode} className="font-semibold text-slate-900">Sign up</button></>
           ) : (
