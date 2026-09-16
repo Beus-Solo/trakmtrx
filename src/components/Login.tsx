@@ -86,9 +86,9 @@ export default function Login() {
         <svg
           viewBox="0 0 400 56"
           preserveAspectRatio="none"
-          className="absolute inset-x-0 -bottom-px h-12 w-full text-white animate-wave-settle"
+          className="absolute inset-x-0 -bottom-px h-12 w-full text-white"
         >
-          <path d="M0,56 C110,0 290,56 400,8 L400,56 Z" fill="currentColor" />
+          <path d="M0,56 C110,0 290,56 400,8 L400,56 Z" fill="currentColor" className="animate-wave-rise" />
         </svg>
       </div>
 
