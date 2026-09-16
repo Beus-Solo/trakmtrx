@@ -1,80 +1,16 @@
 import { useState, useRef, useEffect, FormEvent, KeyboardEvent, ClipboardEvent } from 'react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usernameToEmail } from '../lib/username';
 
 const PIN_LENGTH = 6;
-
-function WalletDoodle() {
-  return (
-    <svg viewBox="0 0 200 170" className="mx-auto h-36 w-auto text-slate-800" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M25 60 h120 a14 14 0 0 1 14 14 v55 a14 14 0 0 1 -14 14 H25 a14 14 0 0 1 -14 -14 V74 a14 14 0 0 1 14 -14 Z" />
-      <path d="M11 78 h150" />
-      <circle cx="140" cy="100" r="11" />
-      <circle cx="140" cy="100" r="3" fill="currentColor" stroke="none" />
-      <path d="M55 60 V40 a20 20 0 0 1 20 -20 h55" strokeDasharray="1 8" opacity="0.5" />
-      <circle cx="152" cy="24" r="16" />
-      <path d="M144 24 h16 M152 16 v16" opacity="0.7" />
-      <path d="M6 145 c30 10 130 10 165 0" opacity="0.35" />
-    </svg>
-  );
-}
-
-// Ambient bubbles rise from the doodle and a tap sends out a ripple — same idea as a splash-screen
-// hero animation, kept entirely in the app's existing black/white/zinc palette (no new colors).
-const LOGO_BUBBLES = [
-  { size: 7, left: '30%', delay: '0s', duration: '4.4s', x: '-16px', o: 0.5, tone: 'bg-slate-900' },
-  { size: 5, left: '68%', delay: '0.7s', duration: '3.8s', x: '14px', o: 0.35, tone: 'bg-slate-400' },
-  { size: 9, left: '48%', delay: '1.4s', duration: '5s', x: '4px', o: 0.4, tone: 'bg-slate-300' },
-  { size: 6, left: '58%', delay: '2.1s', duration: '4.2s', x: '20px', o: 0.5, tone: 'bg-slate-900' },
-  { size: 5, left: '38%', delay: '2.8s', duration: '4.6s', x: '-8px', o: 0.35, tone: 'bg-slate-400' },
-];
-
-function AnimatedLogo() {
-  const [taps, setTaps] = useState<number[]>([]);
-
-  const handleTap = () => {
-    const id = Date.now();
-    setTaps(prev => [...prev, id]);
-    setTimeout(() => setTaps(prev => prev.filter(t => t !== id)), 650);
-  };
-
-  return (
-    <div
-      onPointerDown={handleTap}
-      className="relative mx-auto flex h-36 w-full cursor-pointer items-center justify-center"
-    >
-      {LOGO_BUBBLES.map((b, i) => (
-        <span
-          key={i}
-          className={`absolute top-1/2 rounded-full ${b.tone} animate-bubble-rise`}
-          style={{
-            width: b.size,
-            height: b.size,
-            left: b.left,
-            animationDelay: b.delay,
-            animationDuration: b.duration,
-            filter: 'blur(0.5px)',
-            ['--bubble-x' as string]: b.x,
-            ['--bubble-o' as string]: b.o,
-          }}
-        />
-      ))}
-      <WalletDoodle />
-      {taps.map(id => (
-        <span
-          key={id}
-          className="pointer-events-none absolute h-24 w-24 rounded-full border-2 border-slate-900 animate-logo-tap"
-        />
-      ))}
-    </div>
-  );
-}
 
 export default function Login() {
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [username, setUsername] = useState('');
   const [digits, setDigits] = useState<string[]>(Array(PIN_LENGTH).fill(''));
+  const [pinVisible, setPinVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const boxRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -108,11 +44,13 @@ export default function Login() {
     setError(null);
   };
 
+  // The hero is dark and the rest of the page is white, so an iOS elastic overscroll at the very
+  // top of the page should reveal more dark, not the app's usual light background.
   useEffect(() => {
     const prevBody = document.body.style.background;
     const prevHtml = document.documentElement.style.background;
-    document.body.style.background = '#fafafa';
-    document.documentElement.style.background = '#fafafa';
+    document.body.style.background = '#0f172a';
+    document.documentElement.style.background = '#0f172a';
     return () => {
       document.body.style.background = prevBody;
       document.documentElement.style.background = prevHtml;
@@ -139,49 +77,67 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 px-6 py-8">
-      <div className="mx-auto max-w-sm">
-        <div className="mt-6 mb-4">
-          <AnimatedLogo />
-        </div>
-
-        <h1 className="text-center text-2xl font-extrabold tracking-wide text-slate-900">
-          {mode === 'signin' ? 'LOGIN' : 'SIGN UP'}
-        </h1>
-        <p className="mt-2 text-center text-sm text-slate-500">
-          {mode === 'signin' ? 'Sign in with your username.' : 'Choose a username and PIN.'}
+    <div className="min-h-screen bg-white">
+      <div className="relative overflow-hidden bg-slate-900 px-6 pb-16 pt-14">
+        <h1 className="text-3xl font-extrabold tracking-tight text-white">TRAKMTRX</h1>
+        <p className="mt-2 text-sm text-slate-300">
+          {mode === 'signin' ? 'Welcome back — sign in to continue.' : 'Create an account to get started.'}
         </p>
+        <svg viewBox="0 0 400 56" preserveAspectRatio="none" className="absolute inset-x-0 -bottom-px h-12 w-full text-white">
+          <path d="M0,56 C110,0 290,56 400,8 L400,56 Z" fill="currentColor" />
+        </svg>
+      </div>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-          <input
-            type="text"
-            required
-            autoCapitalize="none"
-            autoCorrect="off"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full rounded-full border border-slate-300 bg-white px-5 py-3.5 text-base text-slate-900 outline-none placeholder:text-slate-400 focus:border-zinc-900 sm:text-sm"
-          />
+      <div className="mx-auto w-full max-w-sm px-6 pb-10 pt-2">
+        <h2 className="text-2xl font-bold text-slate-900">{mode === 'signin' ? 'Login' : 'Sign up'}</h2>
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          <div>
+            <label htmlFor="username" className="mb-1.5 block text-xs font-medium text-slate-500">
+              Username
+            </label>
+            <input
+              id="username"
+              type="text"
+              required
+              autoCapitalize="none"
+              autoCorrect="off"
+              placeholder="Enter your username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-400 focus:bg-white sm:text-sm"
+            />
+          </div>
 
           <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-500">PIN</span>
+              <button
+                type="button"
+                onClick={() => setPinVisible(v => !v)}
+                aria-label={pinVisible ? 'Hide PIN' : 'Show PIN'}
+                className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-slate-600"
+              >
+                {pinVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                {pinVisible ? 'Hide' : 'Show'}
+              </button>
+            </div>
             <div className="flex justify-between gap-2">
               {digits.map((d, i) => (
                 <input
                   key={i}
                   ref={(el) => { boxRefs.current[i] = el; }}
-                  type="password"
+                  type={pinVisible ? 'text' : 'password'}
                   inputMode="numeric"
                   maxLength={1}
                   value={d}
                   onChange={(e) => setDigit(i, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(i, e)}
                   onPaste={handlePaste}
-                  className="h-14 w-full rounded-2xl border border-slate-300 bg-white text-center text-lg text-slate-900 outline-none focus:border-zinc-900"
+                  className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 text-center text-lg text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
                 />
               ))}
             </div>
-            <p className="mt-2 text-xs text-slate-400">PIN — 6 digits</p>
           </div>
 
           {error && <p className="text-center text-xs text-red-600">{error}</p>}
@@ -189,17 +145,18 @@ export default function Login() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-full bg-zinc-900 py-3.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 py-3.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
           >
-            {submitting ? 'Please wait…' : 'Next'}
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {submitting ? 'Please wait…' : mode === 'signin' ? 'Login' : 'Create account'}
           </button>
         </form>
 
         <p className="mt-8 text-center text-sm text-slate-500">
           {mode === 'signin' ? (
-            <>New here? <button onClick={toggleMode} className="font-semibold text-zinc-900">Create an account.</button></>
+            <>Don't have an account? <button onClick={toggleMode} className="font-semibold text-slate-900">Sign up</button></>
           ) : (
-            <>Already have an account? <button onClick={toggleMode} className="font-semibold text-zinc-900">Sign in.</button></>
+            <>Already have an account? <button onClick={toggleMode} className="font-semibold text-slate-900">Login</button></>
           )}
         </p>
       </div>
