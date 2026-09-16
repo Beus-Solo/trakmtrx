@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, PointerEvent as ReactPointerEvent } from 'react';
-import { Trash2, Plus, Check, Repeat, ChevronLeft, ChevronRight, X, Wallet2, ListChecks, Download, Calendar, Delete } from 'lucide-react';
+import { Trash2, Plus, Check, Repeat, ChevronLeft, ChevronRight, X, Wallet2, ListChecks, Download, Calendar, Delete, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { Transaction } from '../types';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { useVisualViewport, ACCESSORY_BAR_INSET } from '../hooks/useVisualViewportHeight';
@@ -96,6 +96,33 @@ const evaluateAmount = (expr: string): number => {
   }
   return Number.isFinite(total) ? total : 0;
 };
+
+// A circular progress ring used to show this month's total against a comparison month's total.
+// The fill is capped at 100% visually (an overflowing ring reads as "full", not as broken math);
+// the exact percentage — which can exceed 100 — is still shown as text in the middle.
+function RingProgress({ pct, over, size = 108, stroke = 10 }: { pct: number; over: boolean; size?: number; stroke?: number }) {
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(100, pct));
+  const offset = circumference * (1 - clamped / 100);
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 -rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor" strokeWidth={stroke} className="text-slate-100" />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        className={over ? 'text-rose-400' : 'text-emerald-400'}
+      />
+    </svg>
+  );
+}
 
 export default function MonthlyChecklist({ transactions, onAdd, onDelete, onToggleChecked, onUpdate, canEdit, hiddenCategories, onHideCategory }: Props) {
   const now = new Date();
@@ -300,6 +327,28 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
   }, [monthTransactions]);
 
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+
+  // How many months back from the active month to compare against — "Last month" by default.
+  // Kept as an offset (rather than a fixed year/month) so it stays meaningful as the user
+  // navigates the month carousel: "vs last month" always means last month, wherever they are.
+  const [compareOffset, setCompareOffset] = useState(1);
+  const compareDate = new Date(activeYear, activeMonth - compareOffset, 1);
+  const compareYear = compareDate.getFullYear();
+  const compareMonth = compareDate.getMonth();
+
+  const { map: compareCategoryTotals, total: compareTotal } = useMemo(() => {
+    const map = new Map<string, number>();
+    let total = 0;
+    transactions.forEach(t => {
+      if (!t.checked) return;
+      const d = new Date(t.date + 'T00:00:00');
+      if (d.getMonth() !== compareMonth || d.getFullYear() !== compareYear) return;
+      const cat = t.category.trim() || 'Uncategorized';
+      map.set(cat, (map.get(cat) ?? 0) + t.amount);
+      total += t.amount;
+    });
+    return { map, total };
+  }, [transactions, compareYear, compareMonth]);
 
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedExportCategories, setSelectedExportCategories] = useState<string[]>([]);
@@ -682,53 +731,137 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
       <div key={activeTab} ref={tabContentRef} className={tabDirection === 'right' ? 'animate-tab-slide-right' : 'animate-tab-slide-left'}>
 
       {activeTab === 'category' ? (
-        <div className="rounded-3xl bg-white p-5 shadow-sm">
-          <h4 className="mb-4 text-sm font-semibold text-slate-800">Spending by category</h4>
-          {categoryTotals.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-slate-400">
-              No paid items yet this month. Check items off to see the breakdown.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {categoryTotals.map(([cat, amt]) => {
-                const pct = paidTotal > 0 ? (amt / paidTotal) * 100 : 0;
-                const c = colorFor(cat);
-                const isOpen = expandedCategory === cat;
-                const items = itemsByCategory.get(cat) ?? [];
-                return (
-                  <div key={cat}>
-                    <button
-                      type="button"
-                      onClick={() => setExpandedCategory(isOpen ? null : cat)}
-                      className="mb-1.5 flex w-full items-center justify-between gap-2 text-left text-sm"
-                    >
-                      <span className="flex items-center gap-2 font-medium text-slate-700">
-                        <span className={`h-2 w-2 rounded-full ${c.dot}`} />
-                        {cat}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="font-semibold text-slate-800">{fmt(amt)}</span>
-                        <ChevronRight className={`h-3.5 w-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-                      </span>
-                    </button>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                      <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${pct}%` }} />
-                    </div>
-                    {isOpen && (
-                      <div className="mt-2.5 space-y-1.5 border-l-2 border-slate-100 pl-3">
-                        {items.map(t => (
-                          <div key={t.id} className="flex items-center justify-between text-xs text-slate-500">
-                            <span className="truncate pr-2">{t.name}</span>
-                            <span className="shrink-0 font-medium text-slate-600">{fmt(t.amount)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+        <div className="space-y-4">
+          {/* Comparison summary: this month's total against a chosen earlier month */}
+          <div className="rounded-3xl bg-white p-5 shadow-sm">
+            <h4 className="text-sm font-semibold text-slate-800">
+              {MONTHS[activeMonth]} vs {MONTHS[compareMonth]}
+            </h4>
+            <div className="mt-4 flex items-center gap-5">
+              <div className="relative flex shrink-0 items-center justify-center">
+                <RingProgress
+                  pct={compareTotal > 0 ? (paidTotal / compareTotal) * 100 : paidTotal > 0 ? 100 : 0}
+                  over={compareTotal > 0 ? paidTotal > compareTotal : paidTotal > 0}
+                />
+                <div className="absolute flex flex-col items-center">
+                  <span
+                    className={`text-lg font-bold ${
+                      compareTotal === 0 ? 'text-slate-400' : paidTotal > compareTotal ? 'text-rose-500' : 'text-emerald-600'
+                    }`}
+                  >
+                    {compareTotal > 0 ? `${Math.round((paidTotal / compareTotal) * 100)}%` : paidTotal > 0 ? 'New' : '—'}
+                  </span>
+                  <span className="text-[10px] text-slate-400">of {MONTHS[compareMonth].slice(0, 3)}</span>
+                </div>
+              </div>
+
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-slate-500">{MONTHS[activeMonth]}</span>
+                  <span className="text-base font-bold text-slate-900">{fmt(paidTotal)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-slate-500">{MONTHS[compareMonth]}</span>
+                  <span className="text-sm font-semibold text-slate-500">{fmt(compareTotal)}</span>
+                </div>
+                {compareTotal > 0 && (
+                  <div className={`flex items-center gap-1 text-xs font-medium ${paidTotal >= compareTotal ? 'text-rose-500' : 'text-emerald-600'}`}>
+                    {paidTotal >= compareTotal ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+                    {fmt(Math.abs(paidTotal - compareTotal))} {paidTotal >= compareTotal ? 'more' : 'less'}
                   </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 flex gap-1.5 overflow-x-auto border-t border-zinc-100 pt-4">
+              {[1, 2, 3, 4, 5, 6].map(offset => {
+                const d = new Date(activeYear, activeMonth - offset, 1);
+                return (
+                  <button
+                    key={offset}
+                    type="button"
+                    onClick={() => setCompareOffset(offset)}
+                    className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                      compareOffset === offset ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    }`}
+                  >
+                    vs {d.toLocaleDateString('en-US', { month: 'short' })}
+                  </button>
                 );
               })}
             </div>
-          )}
+          </div>
+
+          {/* Per-category breakdown, each with its own trend vs the comparison month */}
+          <div className="rounded-3xl bg-white p-5 shadow-sm">
+            <h4 className="mb-4 text-sm font-semibold text-slate-800">By category</h4>
+            {categoryTotals.length === 0 ? (
+              <div className="px-4 py-10 text-center text-sm text-slate-400">
+                No paid items yet this month. Check items off to see the breakdown.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {categoryTotals.map(([cat, amt]) => {
+                  const pct = paidTotal > 0 ? (amt / paidTotal) * 100 : 0;
+                  const c = colorFor(cat);
+                  const isOpen = expandedCategory === cat;
+                  const items = itemsByCategory.get(cat) ?? [];
+                  const prevAmt = compareCategoryTotals.get(cat) ?? 0;
+                  const changePct = prevAmt > 0 ? ((amt - prevAmt) / prevAmt) * 100 : null;
+                  const isNew = prevAmt === 0 && amt > 0;
+                  return (
+                    <div key={cat}>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedCategory(isOpen ? null : cat)}
+                        className="mb-1.5 flex w-full items-center gap-3 text-left text-sm"
+                      >
+                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${c.chip}`}>
+                          {cat.charAt(0).toUpperCase()}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate font-medium text-slate-700">{cat}</span>
+                        <span className="flex shrink-0 items-center gap-1.5">
+                          <span className="text-right">
+                            <span className="block font-semibold text-slate-800">{fmt(amt)}</span>
+                            {isNew ? (
+                              <span className="block text-[11px] font-medium text-slate-400">New</span>
+                            ) : changePct !== null ? (
+                              <span
+                                className={`flex items-center justify-end gap-0.5 text-[11px] font-medium ${
+                                  changePct > 0 ? 'text-rose-500' : changePct < 0 ? 'text-emerald-600' : 'text-slate-400'
+                                }`}
+                              >
+                                {changePct > 0 ? (
+                                  <ArrowUpRight className="h-3 w-3" />
+                                ) : changePct < 0 ? (
+                                  <ArrowDownRight className="h-3 w-3" />
+                                ) : null}
+                                {Math.abs(Math.round(changePct))}%
+                              </span>
+                            ) : null}
+                          </span>
+                          <ChevronRight className={`h-3.5 w-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                        </span>
+                      </button>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${pct}%` }} />
+                      </div>
+                      {isOpen && (
+                        <div className="mt-2.5 space-y-1.5 border-l-2 border-slate-100 pl-3">
+                          {items.map(t => (
+                            <div key={t.id} className="flex items-center justify-between text-xs text-slate-500">
+                              <span className="truncate pr-2">{t.name}</span>
+                              <span className="shrink-0 font-medium text-slate-600">{fmt(t.amount)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       ) : activeTab === 'shopping' ? (
         <div className="space-y-2.5">
