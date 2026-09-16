@@ -876,15 +876,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                         </button>
 
                         <div className="min-w-0 flex-1">
-                          {canEdit ? (
-                            <input
-                              defaultValue={t.name}
-                              onBlur={(e) => onUpdate(t.id, { name: e.target.value })}
-                              className="w-full border-none bg-transparent p-0 text-base font-medium text-slate-400 line-through outline-none sm:text-[13px]"
-                            />
-                          ) : (
-                            <p className="truncate text-[13px] font-medium text-slate-400 line-through">{t.name}</p>
-                          )}
+                          <p className="truncate text-[13px] font-medium text-slate-400 line-through">{t.name}</p>
                         </div>
 
                         <span className={`hidden shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:inline-flex ${c.chip}`}>
