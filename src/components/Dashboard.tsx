@@ -44,7 +44,12 @@ export default function Dashboard() {
   if (loading || ownerLoading) {
     return (
       <div className="flex min-h-screen flex-col bg-zinc-100">
-        <Header onOpenSettings={() => setShowSettings(true)} viewMode={canEdit && viewMode} />
+        <Header
+          onOpenSettings={() => setShowSettings(true)}
+          viewMode={viewMode}
+          canToggleViewMode={canEdit}
+          onToggleViewMode={() => setViewMode(v => !v)}
+        />
         <main className="flex flex-1 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900"></div>
         </main>
@@ -54,7 +59,12 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-zinc-100">
-      <Header onOpenSettings={() => setShowSettings(true)} viewMode={canEdit && viewMode} />
+      <Header
+        onOpenSettings={() => setShowSettings(true)}
+        viewMode={viewMode}
+        canToggleViewMode={canEdit}
+        onToggleViewMode={() => setViewMode(v => !v)}
+      />
       <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
         <MonthlyChecklist
           transactions={transactions}
