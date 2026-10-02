@@ -921,7 +921,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
           )}
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {billTransactions.length === 0 ? (
             <div className="rounded-3xl bg-white px-4 py-12 text-center text-sm text-slate-400 shadow-sm">
               No items yet. Tap + to add one.
@@ -931,12 +931,12 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
               {uncheckedItems.map(t => {
                 const c = colorFor(t.category);
                 return (
-                  <div key={t.id} className="flex items-center gap-3 rounded-2xl bg-white p-3.5 shadow-sm">
+                  <div key={t.id} className="flex items-center gap-2.5 rounded-2xl bg-white p-2.5 shadow-sm">
                     <button
                       onClick={() => canEdit && onToggleChecked(t.id)}
                       disabled={!canEdit}
                       aria-label="Mark as paid"
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-slate-200 bg-white ${!canEdit ? 'cursor-default' : ''}`}
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-200 bg-white ${!canEdit ? 'cursor-default' : ''}`}
                     />
 
                     <div className="min-w-0 flex-1">
@@ -944,13 +944,13 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                         <input
                           defaultValue={t.name}
                           onBlur={(e) => onUpdate(t.id, { name: e.target.value })}
-                          className="w-full border-none bg-transparent p-0 text-base font-medium text-slate-800 outline-none sm:text-sm"
+                          className="w-full border-none bg-transparent p-0 text-base font-medium leading-tight text-slate-800 outline-none sm:text-sm"
                         />
                       ) : (
-                        <p className="truncate text-sm font-medium text-slate-800">{t.name}</p>
+                        <p className="truncate text-sm font-medium leading-tight text-slate-800">{t.name}</p>
                       )}
-                      <div className="mt-1 flex items-center gap-1.5">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${c.chip}`}>
+                      <div className="mt-0.5 flex items-center gap-1.5">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-[10px] font-medium ${c.chip}`}>
                           {t.category}
                         </span>
                         {t.recurring && <Repeat className="h-3 w-3 text-slate-400" />}
@@ -975,7 +975,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                           onClick={() => onUpdate(t.id, { recurring: !t.recurring })}
                           aria-label={t.recurring ? 'Stop repeating monthly' : 'Repeat every month'}
                           title={t.recurring ? 'Repeats every month' : 'Repeat every month'}
-                          className={`shrink-0 rounded-full p-1.5 ${t.recurring ? 'text-indigo-500' : 'text-slate-300 hover:text-slate-500'}`}
+                          className={`shrink-0 rounded-full p-1 ${t.recurring ? 'text-indigo-500' : 'text-slate-300 hover:text-slate-500'}`}
                         >
                           <Repeat className="h-3.5 w-3.5" />
                         </button>
@@ -983,7 +983,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                         <button
                           onClick={() => onDelete(t.id)}
                           aria-label="Delete item"
-                          className="shrink-0 rounded-full p-1.5 text-slate-300 hover:bg-red-50 hover:text-red-500"
+                          className="shrink-0 rounded-full p-1 text-slate-300 hover:bg-red-50 hover:text-red-500"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
