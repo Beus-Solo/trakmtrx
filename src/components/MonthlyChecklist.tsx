@@ -362,6 +362,20 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
 
   const [expandedTrendId, setExpandedTrendId] = useState<string | null>(null);
 
+  // Whether to reserve a trend-badge column on the right of each row at all. Reserving it only
+  // when at least one row in the list actually has a badge keeps a brand-new budget (nothing has
+  // prior-month data yet) free of a pointless empty gap on every row; once any row does show a
+  // badge, reserving the same width on every row keeps the amount column's right edge aligned
+  // instead of jumping left and right depending on which rows happen to have one.
+  const hasAnyUncheckedTrend = useMemo(
+    () => uncheckedItems.some(t => { const tr = itemTrend(t); return tr.lastMonth || tr.lastYear; }),
+    [uncheckedItems, itemMonthTotals, activeYear, activeMonth]
+  );
+  const hasAnyCheckedTrend = useMemo(
+    () => checkedItems.some(t => { const tr = itemTrend(t); return tr.lastMonth || tr.lastYear; }),
+    [checkedItems, itemMonthTotals, activeYear, activeMonth]
+  );
+
   // How many months back from the active month to compare against — "Last month" by default.
   // Kept as an offset (rather than a fixed year/month) so it stays meaningful as the user
   // navigates the month carousel: "vs last month" always means last month, wherever they are.
@@ -1007,22 +1021,26 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                         <span className="shrink-0 text-sm font-semibold text-slate-800">{fmt(t.amount)}</span>
                       )}
 
-                      {badge && (
-                        <button
-                          type="button"
-                          onClick={() => setExpandedTrendId(isTrendOpen ? null : t.id)}
-                          aria-label="Show spending trend"
-                          className={`flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-medium ${
-                            badge.changePct > 0 ? 'bg-rose-50 text-rose-500' : badge.changePct < 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
-                          }`}
-                        >
-                          {badge.changePct > 0 ? (
-                            <ArrowUpRight className="h-3 w-3" />
-                          ) : badge.changePct < 0 ? (
-                            <ArrowDownRight className="h-3 w-3" />
-                          ) : null}
-                          {Math.abs(Math.round(badge.changePct))}%
-                        </button>
+                      {hasAnyUncheckedTrend && (
+                        <div className="flex w-14 shrink-0 justify-end">
+                          {badge && (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedTrendId(isTrendOpen ? null : t.id)}
+                              aria-label="Show spending trend"
+                              className={`flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-medium ${
+                                badge.changePct > 0 ? 'bg-rose-50 text-rose-500' : badge.changePct < 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                              }`}
+                            >
+                              {badge.changePct > 0 ? (
+                                <ArrowUpRight className="h-3 w-3" />
+                              ) : badge.changePct < 0 ? (
+                                <ArrowDownRight className="h-3 w-3" />
+                              ) : null}
+                              {Math.abs(Math.round(badge.changePct))}%
+                            </button>
+                          )}
+                        </div>
                       )}
 
                       {canEdit && (
@@ -1112,22 +1130,26 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
 
                           <span className="shrink-0 whitespace-nowrap text-right text-[13px] font-semibold text-slate-500">{fmt(t.amount)}</span>
 
-                          {badge && (
-                            <button
-                              type="button"
-                              onClick={() => setExpandedTrendId(isTrendOpen ? null : t.id)}
-                              aria-label="Show spending trend"
-                              className={`flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                                badge.changePct > 0 ? 'bg-rose-50 text-rose-500' : badge.changePct < 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
-                              }`}
-                            >
-                              {badge.changePct > 0 ? (
-                                <ArrowUpRight className="h-2.5 w-2.5" />
-                              ) : badge.changePct < 0 ? (
-                                <ArrowDownRight className="h-2.5 w-2.5" />
-                              ) : null}
-                              {Math.abs(Math.round(badge.changePct))}%
-                            </button>
+                          {hasAnyCheckedTrend && (
+                            <div className="flex w-12 shrink-0 justify-end">
+                              {badge && (
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedTrendId(isTrendOpen ? null : t.id)}
+                                  aria-label="Show spending trend"
+                                  className={`flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                                    badge.changePct > 0 ? 'bg-rose-50 text-rose-500' : badge.changePct < 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                                  }`}
+                                >
+                                  {badge.changePct > 0 ? (
+                                    <ArrowUpRight className="h-2.5 w-2.5" />
+                                  ) : badge.changePct < 0 ? (
+                                    <ArrowDownRight className="h-2.5 w-2.5" />
+                                  ) : null}
+                                  {Math.abs(Math.round(badge.changePct))}%
+                                </button>
+                              )}
+                            </div>
                           )}
 
                           {canEdit && (
