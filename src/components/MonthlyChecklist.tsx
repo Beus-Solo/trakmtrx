@@ -469,7 +469,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
     setShowExportModal(false);
   };
 
-  const fmt = (n: number) => `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmt = (n: number) => `Rf ${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   // Auto-copy recurring items into the active month if they aren't there yet.
   const seededMonths = useRef(new Set<string>());
@@ -902,7 +902,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                         className="w-16 shrink-0 border-none bg-transparent text-right text-base font-semibold text-slate-800 outline-none sm:text-sm"
                       />
                     ) : (
-                      <span className="shrink-0 text-sm font-semibold text-slate-800">{t.amount}</span>
+                      <span className="shrink-0 text-sm font-semibold text-slate-800">{fmt(t.amount)}</span>
                     )}
 
                     {canEdit && (
@@ -966,7 +966,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                         className="w-16 shrink-0 border-none bg-transparent text-right text-base font-semibold text-slate-800 outline-none sm:text-sm"
                       />
                     ) : (
-                      <span className="shrink-0 text-sm font-semibold text-slate-800">{t.amount}</span>
+                      <span className="shrink-0 text-sm font-semibold text-slate-800">{fmt(t.amount)}</span>
                     )}
 
                     {canEdit && (
@@ -1016,7 +1016,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                           {t.category}
                         </span>
 
-                        <span className="w-14 shrink-0 text-right text-[13px] font-semibold text-slate-500">{t.amount}</span>
+                        <span className="shrink-0 whitespace-nowrap text-right text-[13px] font-semibold text-slate-500">{fmt(t.amount)}</span>
 
                         {canEdit && (
                           <button
