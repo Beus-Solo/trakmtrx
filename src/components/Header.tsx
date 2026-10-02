@@ -3,9 +3,11 @@ import { Wallet, Settings, Eye } from 'lucide-react';
 interface Props {
   onOpenSettings: () => void;
   viewMode?: boolean;
+  canToggleViewMode?: boolean;
+  onToggleViewMode?: () => void;
 }
 
-export default function Header({ onOpenSettings, viewMode }: Props) {
+export default function Header({ onOpenSettings, viewMode, canToggleViewMode, onToggleViewMode }: Props) {
   return (
     <header className="px-4 pt-6 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-3xl items-center justify-between">
@@ -14,10 +16,18 @@ export default function Header({ onOpenSettings, viewMode }: Props) {
             <Wallet className="h-4.5 w-4.5" />
           </div>
           <span className="text-lg font-semibold tracking-tight text-slate-900">TRAKMTRX</span>
-          {viewMode && (
-            <span className="flex items-center gap-1 rounded-full bg-slate-900/5 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-              <Eye className="h-3 w-3" /> View mode
-            </span>
+          {canToggleViewMode && (
+            <button
+              onClick={onToggleViewMode}
+              aria-pressed={viewMode}
+              aria-label={viewMode ? 'Turn off View mode' : 'Turn on View mode'}
+              title={viewMode ? 'View mode is on — tap to switch back to editing' : 'Tap to browse in View mode'}
+              className={`flex h-6 w-6 items-center justify-center rounded-full ${
+                viewMode ? 'bg-slate-900/10 text-slate-700' : 'text-slate-400 hover:bg-slate-900/5 hover:text-slate-600'
+              }`}
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </button>
           )}
         </div>
         <button
