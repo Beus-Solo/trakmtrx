@@ -689,7 +689,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
         className="space-y-5"
       >
       {/* View tabs */}
-      <div className="relative flex gap-1 rounded-full bg-white/70 p-1 text-sm font-medium">
+      <div className="relative flex gap-1 rounded-full bg-white/70 p-1 text-sm font-medium backdrop-blur-md">
         <div
           aria-hidden
           className="absolute inset-y-1 rounded-full bg-slate-900 shadow-sm transition-[transform,width] duration-300 ease-out"
@@ -733,7 +733,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
       {activeTab === 'category' ? (
         <div className="space-y-4">
           {/* Comparison summary: this month's total against a chosen earlier month */}
-          <div className="rounded-3xl bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-white/70 bg-white/60 p-5 shadow-[0_2px_16px_rgba(15,23,42,0.07)] backdrop-blur-xl">
             <h4 className="text-sm font-semibold text-slate-800">
               {MONTHS[activeMonth]} vs {MONTHS[compareMonth]}
             </h4>
@@ -793,7 +793,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
           </div>
 
           {/* Per-category breakdown, each with its own trend vs the comparison month */}
-          <div className="rounded-3xl bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-white/70 bg-white/60 p-5 shadow-[0_2px_16px_rgba(15,23,42,0.07)] backdrop-blur-xl">
             <h4 className="mb-4 text-sm font-semibold text-slate-800">By category</h4>
             {categoryTotals.length === 0 ? (
               <div className="px-4 py-10 text-center text-sm text-slate-400">
@@ -866,11 +866,11 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
       ) : activeTab === 'shopping' ? (
         <div className="space-y-2.5">
           {shoppingTransactions.length === 0 ? (
-            <div className="rounded-3xl bg-white px-4 py-12 text-center text-sm text-slate-400 shadow-sm">
+            <div className="rounded-3xl border border-white/70 bg-white/60 px-4 py-12 text-center text-sm text-slate-400 shadow-[0_2px_16px_rgba(15,23,42,0.07)] backdrop-blur-xl">
               No shopping expenses logged yet this month. Tap + to add one.
             </div>
           ) : (
-            <div className="divide-y divide-zinc-100 overflow-hidden rounded-3xl border border-zinc-100 bg-white shadow-sm">
+            <div className="divide-y divide-white/40 overflow-hidden rounded-3xl border border-white/70 bg-white/60 shadow-[0_2px_16px_rgba(15,23,42,0.07)] backdrop-blur-xl">
               {shoppingTransactions.map(t => {
                 const c = colorFor(t.category);
                 return (
@@ -923,7 +923,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
       ) : (
         <div className="space-y-2">
           {billTransactions.length === 0 ? (
-            <div className="rounded-3xl bg-white px-4 py-12 text-center text-sm text-slate-400 shadow-sm">
+            <div className="rounded-3xl border border-white/70 bg-white/60 px-4 py-12 text-center text-sm text-slate-400 shadow-[0_2px_16px_rgba(15,23,42,0.07)] backdrop-blur-xl">
               No items yet. Tap + to add one.
             </div>
           ) : (
@@ -994,7 +994,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
               })}
 
               {checkedItems.length > 0 && (
-                <div className="divide-y divide-zinc-100 overflow-hidden rounded-2xl border border-zinc-100 bg-zinc-50">
+                <div className="divide-y divide-white/40 overflow-hidden rounded-2xl border border-white/60 bg-white/40 backdrop-blur-xl">
                   {checkedItems.map(t => {
                     const c = colorFor(t.category);
                     return (
@@ -1090,7 +1090,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
             style={{ top: visualViewportTop, height: visualViewportHeight ?? '100dvh' }}
           >
             <div
-              className="pointer-events-auto flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+              className="pointer-events-auto flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-white/60 bg-white/75 shadow-2xl backdrop-blur-2xl sm:rounded-3xl"
               style={{ paddingBottom: keyboardOpen ? ACCESSORY_BAR_INSET : undefined }}
             >
              <div className="min-h-0 overflow-y-auto overscroll-contain pb-5">
@@ -1102,7 +1102,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                 <button
                   onClick={() => setShowAddModal(false)}
                   aria-label="Close"
-                  className="absolute left-5 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  className="absolute left-5 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/50 text-slate-600 backdrop-blur-md hover:bg-white/70"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1129,7 +1129,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                 )}
               </button>
 
-              <div className="mx-5 rounded-2xl bg-slate-50 p-3.5">
+              <div className="mx-5 rounded-2xl border border-white/40 bg-white/25 p-3.5 backdrop-blur-lg">
                 <input
                   placeholder="Describe your transaction"
                   value={name}
@@ -1145,8 +1145,8 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                         key={c}
                         type="button"
                         onClick={() => setCategory(category === c ? '' : c)}
-                        className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium ${
-                          category === c ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'
+                        className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur-md ${
+                          category === c ? 'bg-slate-900/85 text-white' : 'bg-white/50 text-slate-600'
                         }`}
                       >
                         {category === c ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />} {c}
@@ -1158,7 +1158,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
 
               <div className="mt-4 flex items-center gap-2 px-5">
                 {addKind === 'shopping' ? (
-                  <div className="relative flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">
+                  <div className="relative flex items-center gap-1.5 rounded-full bg-white/40 px-3 py-1.5 text-xs font-medium text-slate-700 backdrop-blur-md">
                     <Calendar className="h-3.5 w-3.5" />
                     {shopDate ? shortDate(shopDate) : 'Today'}
                     <input
@@ -1175,8 +1175,8 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                   <button
                     type="button"
                     onClick={() => setRecurring(r => !r)}
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
-                      recurring ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur-md ${
+                      recurring ? 'bg-slate-900/85 text-white' : 'bg-white/40 text-slate-700'
                     }`}
                   >
                     <Repeat className="h-3.5 w-3.5" /> {recurring ? 'Repeats monthly' : "Don't repeat"}
@@ -1186,7 +1186,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                   <button
                     type="button"
                     onClick={() => setSheetMode('category')}
-                    className="ml-auto flex items-center gap-1.5 rounded-full bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-white"
+                    className="ml-auto flex items-center gap-1.5 rounded-full bg-slate-900/85 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur-md"
                   >
                     <Check className="h-3.5 w-3.5" /> Done
                   </button>
@@ -1201,8 +1201,8 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                       type="button"
                       onClick={() => pressKey(key)}
                       aria-label={key === 'back' ? 'Delete' : key}
-                      className={`flex h-12 items-center justify-center rounded-2xl text-lg font-medium active:bg-slate-200 ${
-                        OPERATORS.includes(key) || key === 'back' ? 'bg-slate-100 text-slate-600' : 'bg-slate-50 text-slate-900'
+                      className={`flex h-12 items-center justify-center rounded-2xl text-lg font-medium backdrop-blur-md active:bg-white/50 ${
+                        OPERATORS.includes(key) || key === 'back' ? 'bg-white/40 text-slate-600' : 'bg-white/25 text-slate-900'
                       }`}
                     >
                       {key === 'back' ? <Delete className="h-5 w-5" /> : key}
@@ -1261,8 +1261,8 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                       className="flex w-full flex-col items-center gap-1.5"
                     >
                       <span
-                        className={`flex h-12 w-12 items-center justify-center rounded-full border border-dashed text-slate-400 ${
-                          showCategoryInput ? 'border-slate-400 bg-slate-50' : 'border-slate-300'
+                        className={`flex h-12 w-12 items-center justify-center rounded-full border border-dashed text-slate-400 backdrop-blur-md ${
+                          showCategoryInput ? 'border-slate-400 bg-white/30' : 'border-slate-300'
                         }`}
                       >
                         <Plus className="h-5 w-5" />
@@ -1283,13 +1283,13 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                             commitNewCategory();
                           }
                         }}
-                        className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base text-slate-900 outline-none focus:border-slate-400 sm:text-sm"
+                        className="min-w-0 flex-1 rounded-xl border border-white/40 bg-white/25 px-3 py-2.5 text-base text-slate-900 outline-none backdrop-blur-lg focus:border-slate-400 sm:text-sm"
                       />
                       <button
                         type="button"
                         onClick={commitNewCategory}
                         disabled={!newCategory.trim()}
-                        className="shrink-0 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white disabled:opacity-40"
+                        className="shrink-0 rounded-xl bg-slate-900/85 px-4 text-sm font-medium text-white backdrop-blur-md disabled:opacity-40"
                       >
                         Add
                       </button>
@@ -1302,7 +1302,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                 <div className="mt-5 px-5">
                   <button
                     onClick={handleAdd}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-3 text-sm font-medium text-white hover:bg-slate-800"
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900/85 py-3 text-sm font-medium text-white backdrop-blur-md hover:bg-slate-800/85"
                   >
                     <Plus className="h-3.5 w-3.5" /> {addKind === 'shopping' ? 'Log expense' : 'Add to list'}
                   </button>
@@ -1318,12 +1318,12 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
       {showExportModal && (
         <div className="fixed inset-0 z-20 flex items-end justify-center bg-white/10 backdrop-blur-md sm:items-center" onClick={() => setShowExportModal(false)}>
           <div
-            className="w-full max-w-md rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl"
+            className="w-full max-w-md rounded-t-3xl border border-white/60 bg-white/75 p-5 shadow-2xl backdrop-blur-2xl sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
               <h4 className="text-base font-semibold text-slate-900">Export report</h4>
-              <button onClick={() => setShowExportModal(false)} aria-label="Close" className="rounded-full p-1 text-slate-400 hover:bg-slate-100">
+              <button onClick={() => setShowExportModal(false)} aria-label="Close" className="rounded-full p-1 text-slate-400 hover:bg-white/60">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -1335,12 +1335,12 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
               </button>
             </div>
 
-            <div className="max-h-64 space-y-1 overflow-y-auto rounded-2xl border border-slate-100 p-1.5">
+            <div className="max-h-64 space-y-1 overflow-y-auto rounded-2xl border border-white/40 bg-white/10 p-1.5">
               {categoryTotals.map(([cat, amt]) => {
                 const c = colorFor(cat);
                 const checked = selectedExportCategories.includes(cat);
                 return (
-                  <label key={cat} className="flex cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-slate-50">
+                  <label key={cat} className="flex cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-white/40">
                     <input
                       type="checkbox"
                       checked={checked}
@@ -1363,7 +1363,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
             <button
               onClick={handleExportPdf}
               disabled={selectedExportCategories.length === 0}
-              className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+              className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900/85 py-3 text-sm font-medium text-white backdrop-blur-md hover:bg-slate-800/85 disabled:opacity-50"
             >
               <Download className="h-3.5 w-3.5" /> Export PDF
             </button>
