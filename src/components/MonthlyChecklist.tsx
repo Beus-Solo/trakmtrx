@@ -328,6 +328,40 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
 
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
+  // Every transaction's amount, bucketed by item identity (name + category) and by calendar
+  // month, across the item's whole history — not just the active month. Lets a single checklist
+  // row answer "how much was this last month" / "...this month last year" without re-scanning
+  // transactions per row.
+  const itemMonthTotals = useMemo(() => {
+    const map = new Map<string, Map<string, number>>();
+    transactions.forEach(t => {
+      const key = itemKey(t.name, t.category);
+      const d = new Date(t.date + 'T00:00:00');
+      const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
+      const byMonth = map.get(key) ?? new Map<string, number>();
+      byMonth.set(monthKey, (byMonth.get(monthKey) ?? 0) + t.amount);
+      map.set(key, byMonth);
+    });
+    return map;
+  }, [transactions]);
+
+  // vs last calendar month and vs the same month a year ago, for one item. Returns null for
+  // either side with no prior data, so a genuinely new item shows no trend rather than a
+  // misleading "0%".
+  const itemTrend = (t: Transaction) => {
+    const key = itemKey(t.name, t.category);
+    const history = itemMonthTotals.get(key);
+    const lastMonthDate = new Date(activeYear, activeMonth - 1, 1);
+    const lastMonth = history?.get(`${lastMonthDate.getFullYear()}-${lastMonthDate.getMonth()}`) ?? 0;
+    const lastYear = history?.get(`${activeYear - 1}-${activeMonth}`) ?? 0;
+    return {
+      lastMonth: lastMonth > 0 ? { amount: lastMonth, changePct: ((t.amount - lastMonth) / lastMonth) * 100 } : null,
+      lastYear: lastYear > 0 ? { amount: lastYear, changePct: ((t.amount - lastYear) / lastYear) * 100 } : null
+    };
+  };
+
+  const [expandedTrendId, setExpandedTrendId] = useState<string | null>(null);
+
   // How many months back from the active month to compare against — "Last month" by default.
   // Kept as an offset (rather than a fixed year/month) so it stays meaningful as the user
   // navigates the month carousel: "vs last month" always means last month, wherever they are.
@@ -930,64 +964,120 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
             <>
               {uncheckedItems.map(t => {
                 const c = colorFor(t.category);
+                const trend = itemTrend(t);
+                const badge = trend.lastMonth ?? trend.lastYear;
+                const isTrendOpen = expandedTrendId === t.id;
                 return (
-                  <div key={t.id} className="flex items-center gap-2.5 rounded-2xl bg-white p-2.5 shadow-sm">
-                    <button
-                      onClick={() => canEdit && onToggleChecked(t.id)}
-                      disabled={!canEdit}
-                      aria-label="Mark as paid"
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-200 bg-white ${!canEdit ? 'cursor-default' : ''}`}
-                    />
+                  <div key={t.id}>
+                    <div className="flex items-center gap-2.5 rounded-2xl bg-white p-2.5 shadow-sm">
+                      <button
+                        onClick={() => canEdit && onToggleChecked(t.id)}
+                        disabled={!canEdit}
+                        aria-label="Mark as paid"
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-200 bg-white ${!canEdit ? 'cursor-default' : ''}`}
+                      />
 
-                    <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1">
+                        {canEdit ? (
+                          <input
+                            defaultValue={t.name}
+                            onBlur={(e) => onUpdate(t.id, { name: e.target.value })}
+                            className="w-full border-none bg-transparent p-0 text-base font-medium leading-tight text-slate-800 outline-none sm:text-sm"
+                          />
+                        ) : (
+                          <p className="truncate text-sm font-medium leading-tight text-slate-800">{t.name}</p>
+                        )}
+                        <div className="mt-0.5 flex items-center gap-1.5">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-[10px] font-medium ${c.chip}`}>
+                            {t.category}
+                          </span>
+                          {t.recurring && <Repeat className="h-3 w-3 text-slate-400" />}
+                        </div>
+                      </div>
+
                       {canEdit ? (
                         <input
-                          defaultValue={t.name}
-                          onBlur={(e) => onUpdate(t.id, { name: e.target.value })}
-                          className="w-full border-none bg-transparent p-0 text-base font-medium leading-tight text-slate-800 outline-none sm:text-sm"
+                          type="number"
+                          step="0.01"
+                          defaultValue={t.amount}
+                          onBlur={(e) => onUpdate(t.id, { amount: parseFloat(e.target.value) || 0 })}
+                          className="w-16 shrink-0 border-none bg-transparent text-right text-base font-semibold text-slate-800 outline-none sm:text-sm"
                         />
                       ) : (
-                        <p className="truncate text-sm font-medium leading-tight text-slate-800">{t.name}</p>
+                        <span className="shrink-0 text-sm font-semibold text-slate-800">{fmt(t.amount)}</span>
                       )}
-                      <div className="mt-0.5 flex items-center gap-1.5">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-[10px] font-medium ${c.chip}`}>
-                          {t.category}
-                        </span>
-                        {t.recurring && <Repeat className="h-3 w-3 text-slate-400" />}
-                      </div>
+
+                      {badge && (
+                        <button
+                          type="button"
+                          onClick={() => setExpandedTrendId(isTrendOpen ? null : t.id)}
+                          aria-label="Show spending trend"
+                          className={`flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-medium ${
+                            badge.changePct > 0 ? 'bg-rose-50 text-rose-500' : badge.changePct < 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                          }`}
+                        >
+                          {badge.changePct > 0 ? (
+                            <ArrowUpRight className="h-3 w-3" />
+                          ) : badge.changePct < 0 ? (
+                            <ArrowDownRight className="h-3 w-3" />
+                          ) : null}
+                          {Math.abs(Math.round(badge.changePct))}%
+                        </button>
+                      )}
+
+                      {canEdit && (
+                        <>
+                          <button
+                            onClick={() => onUpdate(t.id, { recurring: !t.recurring })}
+                            aria-label={t.recurring ? 'Stop repeating monthly' : 'Repeat every month'}
+                            title={t.recurring ? 'Repeats every month' : 'Repeat every month'}
+                            className={`shrink-0 rounded-full p-1 ${t.recurring ? 'text-indigo-500' : 'text-slate-300 hover:text-slate-500'}`}
+                          >
+                            <Repeat className="h-3.5 w-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => onDelete(t.id)}
+                            aria-label="Delete item"
+                            className="shrink-0 rounded-full p-1 text-slate-300 hover:bg-red-50 hover:text-red-500"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      )}
                     </div>
 
-                    {canEdit ? (
-                      <input
-                        type="number"
-                        step="0.01"
-                        defaultValue={t.amount}
-                        onBlur={(e) => onUpdate(t.id, { amount: parseFloat(e.target.value) || 0 })}
-                        className="w-16 shrink-0 border-none bg-transparent text-right text-base font-semibold text-slate-800 outline-none sm:text-sm"
-                      />
-                    ) : (
-                      <span className="shrink-0 text-sm font-semibold text-slate-800">{fmt(t.amount)}</span>
-                    )}
-
-                    {canEdit && (
-                      <>
-                        <button
-                          onClick={() => onUpdate(t.id, { recurring: !t.recurring })}
-                          aria-label={t.recurring ? 'Stop repeating monthly' : 'Repeat every month'}
-                          title={t.recurring ? 'Repeats every month' : 'Repeat every month'}
-                          className={`shrink-0 rounded-full p-1 ${t.recurring ? 'text-indigo-500' : 'text-slate-300 hover:text-slate-500'}`}
-                        >
-                          <Repeat className="h-3.5 w-3.5" />
-                        </button>
-
-                        <button
-                          onClick={() => onDelete(t.id)}
-                          aria-label="Delete item"
-                          className="shrink-0 rounded-full p-1 text-slate-300 hover:bg-red-50 hover:text-red-500"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </>
+                    {isTrendOpen && (trend.lastMonth || trend.lastYear) && (
+                      <div className="mt-1 space-y-1 rounded-2xl border border-white/60 bg-white/50 px-3 py-2 text-xs backdrop-blur-lg">
+                        {trend.lastMonth && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500">vs last month</span>
+                            <span className={`flex items-center gap-0.5 font-medium ${trend.lastMonth.changePct > 0 ? 'text-rose-500' : trend.lastMonth.changePct < 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                              {fmt(trend.lastMonth.amount)}
+                              {trend.lastMonth.changePct > 0 ? (
+                                <ArrowUpRight className="h-3 w-3" />
+                              ) : trend.lastMonth.changePct < 0 ? (
+                                <ArrowDownRight className="h-3 w-3" />
+                              ) : null}
+                              {Math.abs(Math.round(trend.lastMonth.changePct))}%
+                            </span>
+                          </div>
+                        )}
+                        {trend.lastYear && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500">vs {new Date(activeYear - 1, activeMonth, 1).toLocaleDateString('en-US', { month: 'short' })} last year</span>
+                            <span className={`flex items-center gap-0.5 font-medium ${trend.lastYear.changePct > 0 ? 'text-rose-500' : trend.lastYear.changePct < 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                              {fmt(trend.lastYear.amount)}
+                              {trend.lastYear.changePct > 0 ? (
+                                <ArrowUpRight className="h-3 w-3" />
+                              ) : trend.lastYear.changePct < 0 ? (
+                                <ArrowDownRight className="h-3 w-3" />
+                              ) : null}
+                              {Math.abs(Math.round(trend.lastYear.changePct))}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 );
@@ -997,35 +1087,91 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                 <div className="divide-y divide-white/40 overflow-hidden rounded-2xl border border-white/60 bg-white/40 backdrop-blur-xl">
                   {checkedItems.map(t => {
                     const c = colorFor(t.category);
+                    const trend = itemTrend(t);
+                    const badge = trend.lastMonth ?? trend.lastYear;
+                    const isTrendOpen = expandedTrendId === t.id;
                     return (
-                      <div key={t.id} className="flex items-center gap-2.5 px-3 py-2 opacity-60">
-                        <button
-                          onClick={() => canEdit && onToggleChecked(t.id)}
-                          disabled={!canEdit}
-                          aria-label="Mark as unpaid"
-                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-slate-900 ${!canEdit ? 'cursor-default' : ''}`}
-                        >
-                          <Check className="h-2.5 w-2.5 text-white" />
-                        </button>
+                      <div key={t.id}>
+                        <div className="flex items-center gap-2.5 px-3 py-2 opacity-60">
+                          <button
+                            onClick={() => canEdit && onToggleChecked(t.id)}
+                            disabled={!canEdit}
+                            aria-label="Mark as unpaid"
+                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-slate-900 ${!canEdit ? 'cursor-default' : ''}`}
+                          >
+                            <Check className="h-2.5 w-2.5 text-white" />
+                          </button>
 
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[13px] font-medium text-slate-400 line-through">{t.name}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[13px] font-medium text-slate-400 line-through">{t.name}</p>
+                          </div>
+
+                          <span className={`hidden shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:inline-flex ${c.chip}`}>
+                            {t.category}
+                          </span>
+
+                          <span className="shrink-0 whitespace-nowrap text-right text-[13px] font-semibold text-slate-500">{fmt(t.amount)}</span>
+
+                          {badge && (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedTrendId(isTrendOpen ? null : t.id)}
+                              aria-label="Show spending trend"
+                              className={`flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                                badge.changePct > 0 ? 'bg-rose-50 text-rose-500' : badge.changePct < 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                              }`}
+                            >
+                              {badge.changePct > 0 ? (
+                                <ArrowUpRight className="h-2.5 w-2.5" />
+                              ) : badge.changePct < 0 ? (
+                                <ArrowDownRight className="h-2.5 w-2.5" />
+                              ) : null}
+                              {Math.abs(Math.round(badge.changePct))}%
+                            </button>
+                          )}
+
+                          {canEdit && (
+                            <button
+                              onClick={() => onDelete(t.id)}
+                              aria-label="Delete item"
+                              className="shrink-0 rounded-full p-1 text-slate-300 hover:bg-red-50 hover:text-red-500"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
                         </div>
 
-                        <span className={`hidden shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:inline-flex ${c.chip}`}>
-                          {t.category}
-                        </span>
-
-                        <span className="shrink-0 whitespace-nowrap text-right text-[13px] font-semibold text-slate-500">{fmt(t.amount)}</span>
-
-                        {canEdit && (
-                          <button
-                            onClick={() => onDelete(t.id)}
-                            aria-label="Delete item"
-                            className="shrink-0 rounded-full p-1 text-slate-300 hover:bg-red-50 hover:text-red-500"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
+                        {isTrendOpen && (trend.lastMonth || trend.lastYear) && (
+                          <div className="mx-3 mb-1 space-y-1 rounded-xl bg-white/50 px-3 py-2 text-xs">
+                            {trend.lastMonth && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-500">vs last month</span>
+                                <span className={`flex items-center gap-0.5 font-medium ${trend.lastMonth.changePct > 0 ? 'text-rose-500' : trend.lastMonth.changePct < 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                  {fmt(trend.lastMonth.amount)}
+                                  {trend.lastMonth.changePct > 0 ? (
+                                    <ArrowUpRight className="h-3 w-3" />
+                                  ) : trend.lastMonth.changePct < 0 ? (
+                                    <ArrowDownRight className="h-3 w-3" />
+                                  ) : null}
+                                  {Math.abs(Math.round(trend.lastMonth.changePct))}%
+                                </span>
+                              </div>
+                            )}
+                            {trend.lastYear && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-500">vs {new Date(activeYear - 1, activeMonth, 1).toLocaleDateString('en-US', { month: 'short' })} last year</span>
+                                <span className={`flex items-center gap-0.5 font-medium ${trend.lastYear.changePct > 0 ? 'text-rose-500' : trend.lastYear.changePct < 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                  {fmt(trend.lastYear.amount)}
+                                  {trend.lastYear.changePct > 0 ? (
+                                    <ArrowUpRight className="h-3 w-3" />
+                                  ) : trend.lastYear.changePct < 0 ? (
+                                    <ArrowDownRight className="h-3 w-3" />
+                                  ) : null}
+                                  {Math.abs(Math.round(trend.lastYear.changePct))}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     );
