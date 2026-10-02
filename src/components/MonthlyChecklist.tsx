@@ -983,9 +983,22 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                 const isTrendOpen = expandedTrendId === t.id;
                 return (
                   <div key={t.id}>
-                    <div className="flex items-center gap-2.5 rounded-2xl bg-white p-2.5 shadow-sm">
+                    <div
+                      onClick={() => badge && setExpandedTrendId(isTrendOpen ? null : t.id)}
+                      role={badge ? 'button' : undefined}
+                      tabIndex={badge ? 0 : undefined}
+                      aria-expanded={badge ? isTrendOpen : undefined}
+                      aria-label={badge ? 'Show spending trend' : undefined}
+                      onKeyDown={(e) => {
+                        if (badge && (e.key === 'Enter' || e.key === ' ')) {
+                          e.preventDefault();
+                          setExpandedTrendId(isTrendOpen ? null : t.id);
+                        }
+                      }}
+                      className={`flex items-center gap-2.5 rounded-2xl bg-white p-2.5 shadow-sm ${badge ? 'cursor-pointer' : ''}`}
+                    >
                       <button
-                        onClick={() => canEdit && onToggleChecked(t.id)}
+                        onClick={(e) => { e.stopPropagation(); canEdit && onToggleChecked(t.id); }}
                         disabled={!canEdit}
                         aria-label="Mark as paid"
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-200 bg-white ${!canEdit ? 'cursor-default' : ''}`}
@@ -995,6 +1008,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                         {canEdit ? (
                           <input
                             defaultValue={t.name}
+                            onClick={(e) => e.stopPropagation()}
                             onBlur={(e) => onUpdate(t.id, { name: e.target.value })}
                             className="w-full border-none bg-transparent p-0 text-base font-medium leading-tight text-slate-800 outline-none sm:text-sm"
                           />
@@ -1014,6 +1028,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                           type="number"
                           step="0.01"
                           defaultValue={t.amount}
+                          onClick={(e) => e.stopPropagation()}
                           onBlur={(e) => onUpdate(t.id, { amount: parseFloat(e.target.value) || 0 })}
                           className="w-16 shrink-0 border-none bg-transparent text-right text-base font-semibold text-slate-800 outline-none sm:text-sm"
                         />
@@ -1023,30 +1038,18 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
 
                       {hasAnyUncheckedTrend && (
                         <div className="flex w-14 shrink-0 justify-end">
-                          {badge && (
-                            <button
-                              type="button"
-                              onClick={() => setExpandedTrendId(isTrendOpen ? null : t.id)}
-                              aria-label="Show spending trend"
-                              className={`flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-medium ${
-                                badge.changePct > 0 ? 'bg-rose-50 text-rose-500' : badge.changePct < 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
-                              }`}
-                            >
-                              {badge.changePct > 0 ? (
-                                <ArrowUpRight className="h-3 w-3" />
-                              ) : badge.changePct < 0 ? (
-                                <ArrowDownRight className="h-3 w-3" />
-                              ) : null}
-                              {Math.abs(Math.round(badge.changePct))}%
-                            </button>
-                          )}
+                          {badge && badge.changePct > 0 ? (
+                            <ArrowUpRight className="h-4 w-4 shrink-0 text-rose-500" />
+                          ) : badge && badge.changePct < 0 ? (
+                            <ArrowDownRight className="h-4 w-4 shrink-0 text-emerald-600" />
+                          ) : null}
                         </div>
                       )}
 
                       {canEdit && (
                         <>
                           <button
-                            onClick={() => onUpdate(t.id, { recurring: !t.recurring })}
+                            onClick={(e) => { e.stopPropagation(); onUpdate(t.id, { recurring: !t.recurring }); }}
                             aria-label={t.recurring ? 'Stop repeating monthly' : 'Repeat every month'}
                             title={t.recurring ? 'Repeats every month' : 'Repeat every month'}
                             className={`shrink-0 rounded-full p-1 ${t.recurring ? 'text-indigo-500' : 'text-slate-300 hover:text-slate-500'}`}
@@ -1055,7 +1058,7 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                           </button>
 
                           <button
-                            onClick={() => onDelete(t.id)}
+                            onClick={(e) => { e.stopPropagation(); onDelete(t.id); }}
                             aria-label="Delete item"
                             className="shrink-0 rounded-full p-1 text-slate-300 hover:bg-red-50 hover:text-red-500"
                           >
@@ -1110,9 +1113,22 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
                     const isTrendOpen = expandedTrendId === t.id;
                     return (
                       <div key={t.id}>
-                        <div className="flex items-center gap-2.5 px-3 py-2 opacity-60">
+                        <div
+                          onClick={() => badge && setExpandedTrendId(isTrendOpen ? null : t.id)}
+                          role={badge ? 'button' : undefined}
+                          tabIndex={badge ? 0 : undefined}
+                          aria-expanded={badge ? isTrendOpen : undefined}
+                          aria-label={badge ? 'Show spending trend' : undefined}
+                          onKeyDown={(e) => {
+                            if (badge && (e.key === 'Enter' || e.key === ' ')) {
+                              e.preventDefault();
+                              setExpandedTrendId(isTrendOpen ? null : t.id);
+                            }
+                          }}
+                          className={`flex items-center gap-2.5 px-3 py-2 opacity-60 ${badge ? 'cursor-pointer' : ''}`}
+                        >
                           <button
-                            onClick={() => canEdit && onToggleChecked(t.id)}
+                            onClick={(e) => { e.stopPropagation(); canEdit && onToggleChecked(t.id); }}
                             disabled={!canEdit}
                             aria-label="Mark as unpaid"
                             className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-slate-900 ${!canEdit ? 'cursor-default' : ''}`}
@@ -1132,29 +1148,17 @@ export default function MonthlyChecklist({ transactions, onAdd, onDelete, onTogg
 
                           {hasAnyCheckedTrend && (
                             <div className="flex w-12 shrink-0 justify-end">
-                              {badge && (
-                                <button
-                                  type="button"
-                                  onClick={() => setExpandedTrendId(isTrendOpen ? null : t.id)}
-                                  aria-label="Show spending trend"
-                                  className={`flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                                    badge.changePct > 0 ? 'bg-rose-50 text-rose-500' : badge.changePct < 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
-                                  }`}
-                                >
-                                  {badge.changePct > 0 ? (
-                                    <ArrowUpRight className="h-2.5 w-2.5" />
-                                  ) : badge.changePct < 0 ? (
-                                    <ArrowDownRight className="h-2.5 w-2.5" />
-                                  ) : null}
-                                  {Math.abs(Math.round(badge.changePct))}%
-                                </button>
-                              )}
+                              {badge && badge.changePct > 0 ? (
+                                <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-rose-500" />
+                              ) : badge && badge.changePct < 0 ? (
+                                <ArrowDownRight className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                              ) : null}
                             </div>
                           )}
 
                           {canEdit && (
                             <button
-                              onClick={() => onDelete(t.id)}
+                              onClick={(e) => { e.stopPropagation(); onDelete(t.id); }}
                               aria-label="Delete item"
                               className="shrink-0 rounded-full p-1 text-slate-300 hover:bg-red-50 hover:text-red-500"
                             >
